@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { deck, dogleg, graph, play, scope as getscope, scopes as getscopes, source, validate, type Countries, type DoglegCourse, type MeridianSource, type PublicQuestion, type Reveal, type Scope } from '@meridian/core'
 import type { Mode } from './taxonomy'
 
@@ -57,6 +57,14 @@ function Next({ label, onClick }: { label: string; onClick: () => void }) {
   return <button className="btn gp-next" type="button" onClick={onClick}>{label}</button>
 }
 
+function Head({ back, label, score, meter }: { back: () => void; label: string; score: ReactNode; meter: ReactNode }) {
+  return <header className="gp-head">
+    <button className="btn quiet mr-back" type="button" onClick={back}>← {label}</button>
+    <strong className="gp-score">score: {score}</strong>
+    <span className="gp-meter">{meter}</span>
+  </header>
+}
+
 function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode; scope: Scope; seed: string; back: () => void }) {
   const survival = mode.id === 'casual-world'
   const questions = useMemo(() => deck(index, { mode: mode.id, seed: `${seed}:${mode.id}:${scope.id}`, scope, count: survival ? 100 : undefined }), [index, mode.id, scope, seed, survival])
@@ -102,12 +110,14 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
 
   if (done) return <Result right={right} wrong={wrong} back={back} stats={history} />
   return <section className="gp-shell">
-    <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><span>{at + 1} / {questions.length}</span><strong>{right} right{survival ? ` · ${wrong}/3 strikes` : ''}</strong></header>
+    <Head back={back} label="end run" score={right} meter={<>{at + 1} / {questions.length}{survival ? ` · ${wrong}/3` : ''}</>} />
     <div className="gp-card">
+      <div className="gp-body">
+        <div className="kicker">{item.topic}</div>
+        <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} answer={answer} />
+        {result !== null && item.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(item.value)} {item.unit}</p>}
+      </div>
       <div className="gp-toolbar">{result !== null && <Next label={last ? 'finish' : 'next'} onClick={next} />}</div>
-      <div className="kicker">{item.topic}</div>
-      <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} answer={answer} />
-      {result !== null && item.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(item.value)} {item.unit}</p>}
     </div>
   </section>
 }
@@ -224,13 +234,15 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
   if (!issued || !item) return <section className="gp-shell"><div className="gp-card"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
   if (result) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">verified result</div><h1>{result.score}<small> points</small></h1><p>{result.correct} correct · {result.answered} answered · {(result.elapsed / 1000).toFixed(1)} seconds</p>{rows.length > 0 && <div className="gp-board"><strong>{issued.season} leaderboard</strong>{rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
   return <section className="gp-shell">
-    <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><Clock expires={issued.expires} expire={finish} /><strong>{points} points</strong></header>
+    <Head back={back} label="end run" score={points} meter={<Clock expires={issued.expires} expire={finish} />} />
     <div className="gp-card">
+      <div className="gp-body">
+        <div className="kicker">{item.topic} · {q}</div>
+        <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} answer={answer} />
+        {feedback && feedback.reveal.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(feedback.reveal.value)} {feedback.reveal.unit}</p>}
+        {error && <div className="mr-notice">{error}</div>}
+      </div>
       <div className="gp-toolbar">{feedback && <Next label={feedback.next ? 'next' : 'finish'} onClick={next} />}</div>
-      <div className="kicker">{item.topic} · {q}</div>
-      <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} answer={answer} />
-      {feedback && feedback.reveal.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(feedback.reveal.value)} {feedback.reveal.unit}</p>}
-      {error && <div className="mr-notice">{error}</div>}
     </div>
   </section>
 }
@@ -285,15 +297,17 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
   }
   const standing = scores.reduce((sum, value, i) => sum + value - course.holes[i]!.par, 0)
   return <section className="gp-shell">
-    <header className="gp-head"><button className="btn quiet mr-back" onClick={back}>← end course</button><span>hole {at + 1} / {length}</span><strong>{standing > 0 ? '+' : ''}{standing}</strong></header>
+    <Head back={back} label="end course" score={<>{standing > 0 ? '+' : ''}{standing}</>} meter={<>hole {at + 1} / {length}</>} />
     <div className="gp-card">
+      <div className="gp-body">
+        <div className="kicker">par {hole.par}</div>
+        <h2>{name(hole.from)} → {name(hole.to)}</h2>
+        <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>
+        <div className="gp-dogstats"><span><b>{status.hops}</b>hops</span><span><b>{Math.round(status.distance).toLocaleString()}</b>km</span><span><b>{mastered.size}</b>borders</span></div>
+        {!complete && <><p className="gp-note">choose a country adjacent to {name(current)}.</p><div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} key={id}>{name(id)}</button>)}</div><button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button></>}
+        {complete && <p className={`gp-caption ${gave ? 'wrong' : 'correct'}`}>{gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`}</p>}
+      </div>
       <div className="gp-toolbar">{complete && <Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} />}</div>
-      <div className="kicker">par {hole.par}</div>
-      <h2>{name(hole.from)} → {name(hole.to)}</h2>
-      <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>
-      <div className="gp-dogstats"><span><b>{status.hops}</b>hops</span><span><b>{Math.round(status.distance).toLocaleString()}</b>km</span><span><b>{mastered.size}</b>borders</span></div>
-      {!complete && <><p className="gp-note">choose a country adjacent to {name(current)}.</p><div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} key={id}>{name(id)}</button>)}</div><button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button></>}
-      {complete && <p className={`gp-caption ${gave ? 'wrong' : 'correct'}`}>{gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`}</p>}
     </div>
   </section>
 }

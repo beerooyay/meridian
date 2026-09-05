@@ -92,6 +92,25 @@ test('question decks are deterministic and validate shared payloads', () => {
   assert.equal(points(false, 0), 0)
 })
 
+test('world survival deck mixes every question kind across a full hundred-question run', () => {
+  const raw: CountryInput[] = chain(25).all.map((item, position) => ({
+    ...item,
+    population: 10_000 * (position + 1),
+    area: 5_000 * (position + 1),
+    capital: `Capital ${position}`,
+    languages: [`Language ${position % 5}`],
+  }))
+  const index = countries(raw)
+  const run = deck(index, { mode: 'casual-world', seed: 'survival' })
+  assert.equal(run.length, 100)
+  const kinds = new Set(run.map(item => item.kind))
+  assert.ok(kinds.has('choice'))
+  assert.ok(kinds.has('text'))
+  assert.ok(kinds.has('tiles'))
+  assert.ok(kinds.has('compare'))
+  assert.ok(kinds.has('dial'))
+})
+
 test('population scramble preserves comparisons and logarithmic estimates', () => {
   const raw: CountryInput[] = chain(25).all.map((item, position) => ({ ...item, population: 10_000 * (position + 1) }))
   const index = countries(raw)

@@ -42,7 +42,7 @@ for (const width of [390, 820, 1440]) {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
     await page.goto(base)
     await expect(page.locator('.mr-nav')).toHaveCSS('display', 'grid')
-    await expect(page.locator('.mr-dailygrid')).toHaveCSS('display', 'grid')
+    await expect(page.locator('.mr-grid').first()).toHaveCSS('display', 'grid')
     await expect(page.locator('.mr-card').first()).toHaveCSS('display', 'flex')
     await expect(page.locator('.mr-card svg')).toHaveCount(0)
     const logo = page.locator('.mr-logo img')

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import Gameplay from './gameplay'
-import { modes } from './taxonomy'
+import { core, modes, scrambles } from './taxonomy'
 import type { Mode } from './taxonomy'
 
 type Auth = 'login' | 'signup'
@@ -237,7 +237,7 @@ export default function Shell() {
 
           <section className="mr-section" id="daily">
             <header className="mr-head"><h2>daily</h2><p>one shared deck for everyone, every day. one attempt.</p></header>
-            <div className="mr-dailygrid">{modes.daily.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <div className="mr-grid">{modes.daily.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
           </section>
 
           <section className="mr-section" id="ranked">
@@ -247,7 +247,9 @@ export default function Shell() {
 
           <section className="mr-section" id="casual">
             <header className="mr-head"><h2>casual</h2><p>no clock, no board. explore the atlas at your pace.</p></header>
-            <div className="mr-grid">{modes.casual.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <div className="mr-grid">{core('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <h3 className="mr-subhead">scrambles</h3>
+            <div className="mr-grid">{scrambles('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
           </section>
         </>}
 

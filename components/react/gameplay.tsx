@@ -58,7 +58,8 @@ function Next({ label, onClick }: { label: string; onClick: () => void }) {
 }
 
 function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode; scope: Scope; seed: string; back: () => void }) {
-  const questions = useMemo(() => deck(index, { mode: mode.id, seed: `${seed}:${mode.id}:${scope.id}`, scope }), [index, mode.id, scope, seed])
+  const survival = mode.id === 'casual-world'
+  const questions = useMemo(() => deck(index, { mode: mode.id, seed: `${seed}:${mode.id}:${scope.id}`, scope, count: survival ? 100 : undefined }), [index, mode.id, scope, seed, survival])
   const key = stamp(mode, seed)
   const initial = useMemo(() => { if (mode.group !== 'daily') return null; try { const raw = JSON.parse(localStorage.getItem(key) || '') as Partial<Saved>; return { at: Math.min(Math.max(0, Number(raw.at) || 0), questions.length), right: Math.max(0, Number(raw.right) || 0), wrong: Math.max(0, Number(raw.wrong) || 0), done: Boolean(raw.done) } } catch { return null } }, [key, mode.group, questions.length])
   const [at, setAt] = useState(initial?.at ?? 0)
@@ -93,16 +94,17 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
     setResult(good)
     if (good) setRight(value => value + 1); else setWrong(value => value + 1)
   }
+  const last = survival ? wrong >= 3 || at + 1 >= questions.length : at + 1 >= questions.length
   function next() {
-    if (at + 1 >= questions.length) setDone(true)
+    if (last) setDone(true)
     else { setAt(value => value + 1); setResult(null); setPicked(null) }
   }
 
   if (done) return <Result right={right} wrong={wrong} back={back} stats={history} />
   return <section className="gp-shell">
-    <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><span>{at + 1} / {questions.length}</span><strong>{right} right</strong></header>
+    <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><span>{at + 1} / {questions.length}</span><strong>{right} right{survival ? ` · ${wrong}/3 strikes` : ''}</strong></header>
     <div className="gp-card">
-      {result !== null && <div className="gp-toolbar"><Next label={at + 1 >= questions.length ? 'finish' : 'next'} onClick={next} /></div>}
+      <div className="gp-toolbar">{result !== null && <Next label={last ? 'finish' : 'next'} onClick={next} />}</div>
       <div className="kicker">{item.topic}</div>
       <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} answer={answer} />
       {result !== null && item.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(item.value)} {item.unit}</p>}
@@ -224,7 +226,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
   return <section className="gp-shell">
     <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><Clock expires={issued.expires} expire={finish} /><strong>{points} points</strong></header>
     <div className="gp-card">
-      {feedback && <div className="gp-toolbar"><Next label={feedback.next ? 'next' : 'finish'} onClick={next} /></div>}
+      <div className="gp-toolbar">{feedback && <Next label={feedback.next ? 'next' : 'finish'} onClick={next} />}</div>
       <div className="kicker">{item.topic} · {q}</div>
       <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} answer={answer} />
       {feedback && feedback.reveal.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(feedback.reveal.value)} {feedback.reveal.unit}</p>}
@@ -285,7 +287,7 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
   return <section className="gp-shell">
     <header className="gp-head"><button className="btn quiet mr-back" onClick={back}>← end course</button><span>hole {at + 1} / {length}</span><strong>{standing > 0 ? '+' : ''}{standing}</strong></header>
     <div className="gp-card">
-      {complete && <div className="gp-toolbar"><Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} /></div>}
+      <div className="gp-toolbar">{complete && <Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} />}</div>
       <div className="kicker">par {hole.par}</div>
       <h2>{name(hole.from)} → {name(hole.to)}</h2>
       <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>

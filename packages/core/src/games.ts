@@ -97,6 +97,7 @@ function fact(items: Country[], rng: Rng, id: string, topic: 'capital' | 'langua
 
 const modes: Readonly<Record<string, readonly string[]>> = {
   'daily-choice': ['flag-choice'],
+  'daily-world-choice': ['flag-choice', 'capital', 'language', 'border'],
   'daily-chance': ['flag-text'],
   'daily-world-scramble': ['flag-tiles', 'capital-tiles', 'population', 'border', 'language'],
   'ranked-choice': ['flag-choice'],
@@ -104,6 +105,7 @@ const modes: Readonly<Record<string, readonly string[]>> = {
   'ranked-flags-scramble': ['flag-tiles'],
   'casual-choice': ['flag-choice'],
   'casual-chance': ['flag-choice', 'flag-text', 'population', 'size', 'capital', 'language', 'border'],
+  'casual-world': ['flag-choice', 'flag-text', 'flag-tiles', 'capital', 'capital-tiles', 'language', 'border', 'population', 'size', 'dial'],
   'casual-flags-scramble': ['flag-tiles', 'flag-choice'],
   'casual-population-scramble': ['population', 'dial'],
   'casual-border-scramble': ['border', 'border', 'flag-tiles'],
@@ -122,7 +124,7 @@ export function deck(index: Countries, options: DeckOptions): readonly Question[
   const pattern = modes[options.mode]
   if (!pattern) throw new RangeError(`unknown question mode: ${options.mode}`)
   const rng = seeded(options.seed)
-  const count = options.count ?? (options.mode.startsWith('ranked-') ? 120 : 10)
+  const count = options.count ?? (options.mode.startsWith('ranked-') ? 120 : options.mode === 'casual-world' ? 100 : 10)
   return Object.freeze(Array.from({ length: count }, (_, position) => {
     const type = pattern[position % pattern.length]!
     const id = `${options.mode}:${position}`
@@ -155,7 +157,7 @@ export function reveal(item: Question): Reveal {
 
 export function points(correct: boolean, ms: number): number {
   if (!correct) return 0
-  const elapsed = Number.isFinite(ms) ? Math.max(0, Math.floor(ms)) : 60_000
+  const elapsed = Number.isFinite(ms) ? Math.max(0, Math.floor(ms)) : 43_000
   return Math.max(100, 1000 - Math.floor(elapsed / 10))
 }
 

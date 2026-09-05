@@ -32,7 +32,16 @@ export const identifier = (value: unknown): value is string => typeof value === 
 
 export const input = (value: unknown): value is string | number => (typeof value === 'string' && value.length <= 200) || (typeof value === 'number' && Number.isFinite(value))
 
-export const payload = (item: Question, run: string, q: number) => sanitize(item, item.flag ? `/api/ranked/flag?run=${encodeURIComponent(run)}&q=${q}` : undefined)
+export const payload = (item: Question, run: string, q: number, flagdata?: string | null) =>
+  sanitize(item, flagdata || (item.flag ? `/api/ranked/flag?run=${encodeURIComponent(run)}&q=${q}` : undefined))
+
+export async function loadflag(id: string): Promise<string | undefined> {
+  if (!/^[a-z]{2}$/i.test(id)) return undefined
+  try {
+    const svg = await readFile(join(process.cwd(), 'public/meridian/flags', `${id.toLowerCase()}.svg`), 'utf8')
+    return `data:image/svg+xml;base64,${Buffer.from(cleansvg(svg, id.toLowerCase())).toString('base64')}`
+  } catch { return undefined }
+}
 
 export const cleansvg = (svg: string, id: string) =>
   svg

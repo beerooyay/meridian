@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { reveal, validate, type Question } from '@meridian/core'
 import { exact, fail, json, off, rate } from '@/lib/api'
-import { context, identifier, input, message, payload, question } from '@/lib/ranked'
+import { context, identifier, input, loadflag, message, payload, question } from '@/lib/ranked'
 
 export async function POST(request: Request) {
   const body = await json(request)
@@ -29,11 +29,12 @@ export async function POST(request: Request) {
   const attempt = Array.isArray(saved.data) ? saved.data[0] : saved.data
   if (!attempt) return fail(500, 'ranked answer unavailable')
   const next = raw.deck[q] as Question | undefined
+  const flagdata = next?.flag ? await loadflag(next.flag) : undefined
   return NextResponse.json({
     q,
     correct: Boolean(attempt.correct),
     points: Number(attempt.points),
     reveal: reveal(item),
-    next: next ? { q: q + 1, question: payload(next, body.run, q + 1) } : null,
+    next: next ? { q: q + 1, question: payload(next, body.run, q + 1, flagdata) } : null,
   })
 }

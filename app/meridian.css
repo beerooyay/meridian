@@ -225,7 +225,7 @@ button:disabled { cursor: default; }
 .gp-score { font-size: var(--t2); font-weight: 700; color: var(--ink); letter-spacing: -.03em; text-align: center; }
 .gp-meter { justify-self: end; text-align: right; }
 .gp-card { position: relative; width: min(100%, 820px); flex: 1; min-height: 0; margin: 0 auto; padding: clamp(16px, 3vw, 40px); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
-.gp-body { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; overflow-y: auto; scrollbar-width: none; }
+.gp-body { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 14px; overflow-y: auto; scrollbar-width: none; }
 .gp-body::-webkit-scrollbar { display: none; }
 .gp-card h2 { max-width: 600px; min-height: calc(var(--t2) * 2.2); }
 .gp-card h1 small { font-size: var(--t2); color: var(--ink-2); font-weight: 500; letter-spacing: 0; }

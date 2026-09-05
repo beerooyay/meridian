@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { deck, scope as getscope, type Scope } from '@meridian/core'
 import { exact, fail, json, off, rate } from '@/lib/api'
-import { context, games, payload } from '@/lib/ranked'
+import { context, games, loadflag, payload } from '@/lib/ranked'
 
 export async function POST(request: Request) {
   const body = await json(request)
@@ -43,5 +43,7 @@ export async function POST(request: Request) {
     await found.db.from('runs').update({ state: 'void' }).eq('id', issued.data.id).eq('state', 'issued')
     return fail(500, 'ranked run could not be activated')
   }
-  return NextResponse.json({ run: active.data.id, season: season.data.slug, q: 1, qcount: questions.length, expires: active.data.expires, question: payload(questions[0]!, active.data.id, 1) })
+  const first = questions[0]!
+  const flagdata = first.flag ? await loadflag(first.flag) : undefined
+  return NextResponse.json({ run: active.data.id, season: season.data.slug, q: 1, qcount: questions.length, expires: active.data.expires, question: payload(first, active.data.id, 1, flagdata) })
 }

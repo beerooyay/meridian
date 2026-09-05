@@ -9,8 +9,8 @@ type Props = { mode: Mode; scope: string; holes: 9 | 18; seed: string; back: () 
 type Saved = { at: number; right: number; wrong: number; done: boolean }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
-const flag = (value: string) => value.startsWith('/') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
-const warm = (value?: string) => { if (value) { const img = new Image(); img.src = flag(value); img.decode?.().catch(() => {}) } }
+const flag = (value: string) => value.startsWith('/') || value.startsWith('data:') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
+const warm = (value?: string) => { if (!value) return; const url = flag(value); if (url.startsWith('data:')) return; const img = new Image(); img.src = url; img.decode?.().catch(() => {}) }
 const format = (value: number) => new Intl.NumberFormat('en', { notation: value >= 1e6 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value)
 const post = (url: string, body: unknown) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
@@ -22,7 +22,7 @@ function Tiles({ item, locked, right, submit }: { item: PublicQuestion; locked: 
   useEffect(() => setUsed([]), [item.id])
   const word = used.map(index => item.letters[index]).join('')
   return <div className="gp-tiles">
-    <div className={`gp-word ${locked ? (right ? 'correct' : 'wrong') : ''}`}>{word || 'build the answer'}</div>
+    <div className={`gp-word ${locked && right !== null ? (right ? 'correct' : 'wrong') : ''}`}>{word || 'build the answer'}</div>
     <div className="gp-letters">{item.letters.map((letter, index) => <button type="button" className="chip" disabled={locked || used.includes(index)} onClick={() => setUsed([...used, index])} key={`${letter}:${index}`}>{letter}</button>)}</div>
     <div className="gp-actions"><button className="btn ghost" type="button" disabled={locked || !used.length} onClick={() => setUsed(used.slice(0, -1))}>undo</button><button className="btn" type="button" disabled={locked || used.length !== item.letters.length} onClick={() => submit(word)}>check</button></div>
   </div>
@@ -32,7 +32,7 @@ function Dial({ item, locked, right, submit }: { item: PublicQuestion; locked: b
   const [step, setStep] = useState(50)
   useEffect(() => setStep(50), [item.id])
   const value = Math.round(10 ** (3 + step / 100 * Math.log10(2e6)))
-  return <div className="gp-dial"><strong className={locked ? (right ? 'correct' : 'wrong') : ''}>{format(value)}</strong><span className="kicker">people</span><input type="range" min="0" max="100" step="0.1" value={step} disabled={locked} aria-label="population estimate" onChange={event => setStep(Number(event.target.value))} /><div className="gp-scale"><span>1 thousand</span><span>2 billion</span></div><button className="btn" type="button" disabled={locked} onClick={() => submit(value)}>lock estimate</button></div>
+  return <div className="gp-dial"><strong className={locked && right !== null ? (right ? 'correct' : 'wrong') : ''}>{format(value)}</strong><span className="kicker">people</span><input type="range" min="0" max="100" step="0.1" value={step} disabled={locked} aria-label="population estimate" onChange={event => setStep(Number(event.target.value))} /><div className="gp-scale"><span>1 thousand</span><span>2 billion</span></div><button className="btn" type="button" disabled={locked} onClick={() => submit(value)}>lock estimate</button></div>
 }
 
 function Prompt({ item, locked, picked, correct, right, reveal, answer }: { item: PublicQuestion; locked: boolean; picked?: string | number | null; correct?: string | null; right?: boolean | null; reveal?: string | null; answer: (value: string | number) => void }) {
@@ -51,7 +51,7 @@ function Prompt({ item, locked, picked, correct, right, reveal, answer }: { item
     <h2>{item.prompt}</h2>
     {item.note && <p className="gp-note">{item.note}</p>}
     {(item.kind === 'choice' || item.kind === 'compare') && <div className="gp-options">{item.options.map(option => <button type="button" className={mark(option)} disabled={locked} onClick={() => answer(option)} key={option}>{option}</button>)}</div>}
-    {item.kind === 'text' && <form className="gp-form" onSubmit={send}><input className={`field ${locked ? (right ? 'correct' : 'wrong') : ''}`} autoFocus value={input} disabled={locked} onChange={event => setInput(event.target.value)} placeholder="type a country" aria-label="answer" /><button className="btn" disabled={locked}>check</button></form>}
+    {item.kind === 'text' && <form className="gp-form" onSubmit={send}><input className={`field ${locked && right !== null ? (right ? 'correct' : 'wrong') : ''}`} autoFocus value={input} disabled={locked} onChange={event => setInput(event.target.value)} placeholder="type a country" aria-label="answer" /><button className="btn" disabled={locked}>check</button></form>}
     {item.kind === 'tiles' && <Tiles item={item} locked={locked} right={right} submit={answer} />}
     {item.kind === 'dial' && <Dial item={item} locked={locked} right={right} submit={answer} />}
     {typed && <p className="gp-caption">{locked && !right && correct ? `answer: ${correct}` : ''}</p>}
@@ -198,14 +198,16 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     fetch(`/api/leaderboard?${query}`).then(response => response.ok ? response.json() : null).then((data: { rows?: Row[] } | null) => alive.current && setRows(data?.rows ?? [])).catch(() => {})
   }, [issued, mode.id, result, scope.id])
 
-  useEffect(() => { warm(feedback?.next?.question?.flag) }, [feedback])
-
   async function answer(value: string | number) {
     if (!issued || !item || feedback || busy || result) return
     setBusy(true)
     setPicked(value)
+    const send = async (attempt = 0): Promise<Response> => {
+      try { return await post('/api/ranked/answer', { run: issued.run, q, answer: value }) }
+      catch { if (attempt < 1) return send(attempt + 1); throw new Error('ranked request failed') }
+    }
     try {
-      const response = await post('/api/ranked/answer', { run: issued.run, q, answer: value })
+      const response = await send()
       const data = await response.json().catch(() => null) as (Answered & { error?: string }) | null
       if (!alive.current) return
       if (!response.ok || !data) {
@@ -214,6 +216,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
       }
       setFeedback(data)
       setPoints(total => total + data.points)
+      setError('')
     } catch (value) {
       if (alive.current) setError(value instanceof Error ? value.message : 'answer could not be saved')
     } finally {
@@ -223,7 +226,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
 
   function next() {
     if (!feedback?.next) { void finish(); return }
-    setQ(feedback.next.q); setItem(feedback.next.question); setFeedback(null); setPicked(null)
+    setQ(feedback.next.q); setItem(feedback.next.question); setFeedback(null); setPicked(null); setError('')
   }
 
   if (error && !issued) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">ranked unavailable</div><h2>{error === 'login required' ? 'log in to play ranked.' : error}</h2><button className="btn" type="button" onClick={back}>return to modes</button></div></section>

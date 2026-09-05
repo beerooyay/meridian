@@ -7,8 +7,7 @@ import { core, modes, scrambles } from './taxonomy'
 import type { Mode } from './taxonomy'
 
 type Auth = 'login' | 'signup'
-type Phase = 'home' | 'detail' | 'ready'
-type Tab = 'daily' | 'ranked' | 'casual' | 'boards'
+type Phase = 'home' | 'detail' | 'ready' | 'boards'
 type Scope = { id: string; name: string; count: number }
 type User = { id: string; username: string | null }
 type Board = 'casual' | 'ranked' | 'daily'
@@ -35,6 +34,7 @@ function Card({ mode, open }: { mode: Mode; open: (mode: Mode) => void }) {
   return (
     <button className="mr-card" type="button" onClick={() => open(mode)}>
       <h2>{mode.name}</h2>
+      <p>{mode.summary}</p>
       <span className="mr-metric">{mode.metric}</span>
     </button>
   )
@@ -140,7 +140,6 @@ function Boards({ scope, back }: { scope: Scope; back: () => void }) {
 
 export default function Shell() {
   const [phase, setPhase] = useState<Phase>('home')
-  const [tab, setTab] = useState<Tab>('daily')
   const [mode, setMode] = useState<Mode | null>(null)
   const [scope, setScope] = useState(scopes[0])
   const [scopeopen, setScopeopen] = useState(false)
@@ -163,7 +162,6 @@ export default function Shell() {
     await fetch('/api/auth/signout', { method: 'POST' })
     setUser(null)
     setPhase('home')
-    setTab('daily')
   }
 
   useEffect(() => {
@@ -192,6 +190,12 @@ export default function Shell() {
       } catch {}
     }
     setPhase('detail')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function jump(id: string) {
+    setPhase('home')
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   const world = mode?.id === 'daily-dogleg'
@@ -210,47 +214,56 @@ export default function Shell() {
   return (
     <div className="mr-app">
       {phase !== 'ready' && <header className="mr-nav">
-        <button className="mr-logo" type="button" onClick={() => { setPhase('home'); setTab('daily') }} aria-label="meridian home">
+        <button className="mr-logo" type="button" onClick={() => setPhase('home')} aria-label="meridian home">
           <picture>
             <source media="(prefers-color-scheme: dark)" srcSet="/meridian/branding/logo-text-white.png" />
             <img src="/meridian/branding/logo-text-black.png" alt="meridian" width="210" height="48" />
           </picture>
         </button>
         <nav aria-label="primary">
-          <button className={`btn quiet ${tab === 'daily' ? 'on' : ''}`} type="button" onClick={() => { setPhase('home'); setTab('daily') }}>daily</button>
-          <button className={`btn quiet ${tab === 'ranked' ? 'on' : ''}`} type="button" onClick={() => { setPhase('home'); setTab('ranked') }}>ranked</button>
-          <button className={`btn quiet ${tab === 'casual' ? 'on' : ''}`} type="button" onClick={() => { setPhase('home'); setTab('casual') }}>casual</button>
-          <button className={`btn quiet ${tab === 'boards' ? 'on' : ''}`} type="button" onClick={() => { setPhase('home'); setTab('boards') }}>boards</button>
+          <button className="btn quiet" type="button" onClick={() => jump('daily')}>daily</button>
+          <button className="btn quiet" type="button" onClick={() => jump('ranked')}>ranked</button>
+          <button className="btn quiet" type="button" onClick={() => jump('casual')}>casual</button>
+          <button className="btn quiet" type="button" onClick={() => setPhase('boards')}>boards</button>
         </nav>
-        <div className="mr-navright">
-          <button className="btn ghost mr-scopebtn" type="button" onClick={() => setScopeopen(true)}>
-            <span>{scope.name}</span><span className="scope-caret">⌄</span>
-          </button>
-          {user
-            ? <div className="mr-user"><button className="btn ghost" type="button" onClick={() => { setPhase('home'); setTab('boards') }}>{user.username ?? 'player'}</button><button className="btn quiet" type="button" onClick={signout}>sign out</button></div>
-            : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
-        </div>
+        {user
+          ? <div className="mr-user"><button className="btn ghost" type="button" onClick={() => setPhase('boards')}>{user.username ?? 'player'}</button><button className="btn quiet" type="button" onClick={signout}>sign out</button></div>
+          : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
       </header>}
 
       <main className="mr-view">
-        {phase === 'home' && tab === 'daily' && <section className="mr-section" id="daily">
-          <header className="mr-head"><h2>daily</h2><p>one shared deck for everyone, every day. one attempt.</p></header>
-          <div className="mr-grid">{modes.daily.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
-        </section>}
+        {phase === 'home' && <>
+          <section className="mr-hero">
+            <div>
+              <div className="kicker">know the world properly</div>
+              <h1>geography that goes beyond the outline.</h1>
+              <p>build real map intuition through daily puzzles, ranked sprints, and unhurried practice.</p>
+            </div>
+            <button className="scope-btn" type="button" onClick={() => setScopeopen(true)}>
+              <span className="scope-label">playing</span>
+              <span className="scope-value">{scope.name}</span>
+              <span className="scope-count">{scope.count} countries</span>
+              <span className="scope-caret">⌄</span>
+            </button>
+          </section>
 
-        {phase === 'home' && tab === 'ranked' && <section className="mr-section" id="ranked">
-          <header className="mr-head"><h2>ranked</h2><p>sixty seconds, server-scored. only timed runs reach the boards.</p></header>
-          <div className="mr-grid">{modes.ranked.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
-        </section>}
+          <section className="mr-section" id="daily">
+            <header className="mr-head"><h2>daily</h2><p>one shared deck for everyone, every day. one attempt.</p></header>
+            <div className="mr-grid">{modes.daily.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+          </section>
 
-        {phase === 'home' && tab === 'casual' && <section className="mr-section" id="casual">
-          <header className="mr-head"><h2>casual</h2><p>no clock, no board. explore the atlas at your pace.</p></header>
-          <div className="mr-grid">{core('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
-          <h3 className="mr-subhead">scrambles</h3>
-          <div className="mr-grid">{scrambles('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
-        </section>}
+          <section className="mr-section" id="ranked">
+            <header className="mr-head"><h2>ranked</h2><p>sixty seconds, server-scored. only timed runs reach the boards.</p></header>
+            <div className="mr-grid">{modes.ranked.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+          </section>
 
-        {phase === 'home' && tab === 'boards' && <Boards scope={scope} back={() => { setPhase('home'); setTab('daily') }} />}
+          <section className="mr-section" id="casual">
+            <header className="mr-head"><h2>casual</h2><p>no clock, no board. explore the atlas at your pace.</p></header>
+            <div className="mr-grid">{core('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <h3 className="mr-subhead">scrambles</h3>
+            <div className="mr-grid">{scrambles('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+          </section>
+        </>}
 
         {phase === 'detail' && mode && <section className="mr-detail">
           <button className="btn quiet mr-back" type="button" onClick={() => setPhase('home')}>← all modes</button>
@@ -265,8 +278,11 @@ export default function Shell() {
         </section>}
 
         {phase === 'ready' && mode && <Gameplay mode={mode} scope={chosen.id} holes={holes} seed={seed} back={() => setPhase('home')} />}
+
+        {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} />}
       </main>
 
+      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
     </div>

@@ -238,6 +238,7 @@ button:disabled { cursor: default; }
 .gp-options button:hover:not(:disabled) { border-color: var(--ink); }
 .gp-options button:active:not(:disabled) { transform: scale(.98); }
 .gp-options button:disabled { opacity: .45; }
+.gp-options button.picked { opacity: 1; border-color: var(--ink); background: var(--surface-3); }
 .gp-options button.yes { opacity: 1; background: var(--good); color: #fff; border-color: var(--good); }
 .gp-options button.no { opacity: 1; background: var(--bad); color: #fff; border-color: var(--bad); text-decoration: line-through; }
 .gp-form { width: min(100%, 520px); display: flex; gap: var(--gap); }

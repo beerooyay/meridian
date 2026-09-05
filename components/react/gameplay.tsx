@@ -10,7 +10,7 @@ type Saved = { at: number; right: number; wrong: number; done: boolean }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
 const flag = (value: string) => value.startsWith('/') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
-const warm = (value?: string) => { if (value) { const img = new Image(); img.src = flag(value) } }
+const warm = (value?: string) => { if (value) { const img = new Image(); img.src = flag(value); img.decode?.().catch(() => {}) } }
 const format = (value: number) => new Intl.NumberFormat('en', { notation: value >= 1e6 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value)
 const post = (url: string, body: unknown) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
@@ -39,10 +39,14 @@ function Prompt({ item, locked, picked, correct, right, reveal, answer }: { item
   const [input, setInput] = useState('')
   useEffect(() => setInput(''), [item.id])
   function send(event: FormEvent) { event.preventDefault(); if (input.trim()) answer(input) }
-  const mark = (option: string) => !locked ? '' : option === correct ? 'yes' : option === picked ? 'no' : ''
+  const mark = (option: string) => {
+    if (!locked) return ''
+    if (correct === null) return option === picked ? 'picked' : ''
+    return option === correct ? 'yes' : option === picked ? 'no' : ''
+  }
   const typed = item.kind !== 'choice' && item.kind !== 'compare'
   return <>
-    {item.flag && <img className="gp-flag" src={flag(item.flag)} alt="country flag" width="520" height="390" />}
+    {item.flag && <img className="gp-flag" src={flag(item.flag)} alt="country flag" width="520" height="390" decoding="async" fetchPriority="high" />}
     <div className="gp-reveal">{reveal ?? ''}</div>
     <h2>{item.prompt}</h2>
     {item.note && <p className="gp-note">{item.note}</p>}

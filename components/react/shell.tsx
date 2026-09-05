@@ -418,7 +418,7 @@ export default function Shell({ initial }: { initial: User | null }) {
         {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} openscope={() => setScopeopen(true)} />}
       </main>
 
-      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
+      {phase !== 'ready' && <footer className="mr-foot"><span><a className="mr-footlink" href="https://rblabs.cloud" target="_blank" rel="noopener">meridian</a></span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox key={auth} kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
       {profile && user && <Profilebox user={user} close={() => setProfile(false)} signout={signout} saved={name => setUser({ ...user, username: name })} />}

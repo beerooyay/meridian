@@ -226,6 +226,8 @@ button:disabled { cursor: default; }
 
 .mr-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 28px 0 8px; color: var(--ink-2); }
 .mr-foot span:first-child { color: var(--ink); font-weight: 700; }
+.mr-footlink { color: inherit; text-decoration: none; }
+.mr-footlink:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .mr-layer { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(10, 11, 13, .5); animation: fade .18s var(--ease) both; }
 @keyframes fade { from { opacity: 0; } }

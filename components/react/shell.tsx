@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import Gameplay from './gameplay'
 import { core, modes, scrambles } from './taxonomy'
@@ -23,6 +23,7 @@ const scopes: Scope[] = [
 ]
 
 const boards: Board[] = ['casual', 'ranked', 'daily']
+const boardopts = boards.map(id => ({ id, name: id }))
 const boardgames: Record<Board, { id: string; name: string }[]> = {
   casual: [
     { id: 'choice', name: 'choice' },
@@ -115,18 +116,39 @@ function Scopebox({ current, choose, close }: { current: Scope; choose: (scope: 
   )
 }
 
+function Pick({ value, options, pick, placeholder, wide }: { value: string | null; options: readonly { id: string; name: string }[]; pick: (id: string) => void; placeholder: string; wide?: boolean }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [open])
+  const label = options.find(item => item.id === value)?.name ?? value ?? placeholder
+  return <div className={`mr-pick ${wide ? 'wide' : ''}`} ref={ref}>
+    <button className="mr-pickbtn" type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(open => !open)}>
+      <span className="mr-picklabel">{label}</span><span className="mr-caret">⌄</span>
+    </button>
+    {open && <div className="mr-menu" role="listbox">
+      {options.map(item => <button key={item.id} className={item.id === value ? 'on' : ''} type="button" role="option" aria-selected={item.id === value} onClick={() => { pick(item.id); setOpen(false) }}>{item.name}</button>)}
+    </div>}
+  </div>
+}
+
 function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; openscope: () => void }) {
   const [board, setBoard] = useState<Board>('casual')
-  const [game, setGame] = useState('choice')
+  const [game, setGame] = useState<string | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const options = boardgames[board]
 
   useEffect(() => {
-    if (!options.some(item => item.id === game)) setGame(options[0]!.id)
+    if (game && !options.some(item => item.id === game)) setGame(null)
   }, [board, game, options])
 
   useEffect(() => {
+    if (!game) return
     let live = true
     setState('loading')
     const params = new URLSearchParams({ board, game, limit: '15' })
@@ -145,18 +167,19 @@ function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; op
       <div className="mr-boardpage">
         <h1>boards</h1>
         <button className="btn ghost" type="button" onClick={openscope}>{scope.name} · {scope.count} countries</button>
-        <div className="mr-tabs">{boards.map(tab => <button key={tab} className={`btn ${board === tab ? '' : 'ghost'}`} type="button" onClick={() => setBoard(tab)}>{tab}</button>)}</div>
-        <select className="mr-select" value={game} onChange={event => setGame(event.target.value)} aria-label="game mode">
-          {options.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
-        <div className="card mr-boardcard">
+        <div className="mr-combo">
+          <Pick value={board} options={boardopts} pick={id => setBoard(id as Board)} placeholder="board" />
+          <span className="mr-sep" />
+          <Pick value={game} options={options} pick={setGame} placeholder="mode" wide />
+        </div>
+        {game && <div className="card mr-boardcard">
           {state === 'loading' && <p className="mr-empty">loading</p>}
           {state === 'error' && <p className="mr-empty">board unavailable</p>}
           {state === 'ready' && rows.length === 0 && <p className="mr-empty">no runs yet. be the first.</p>}
           {state === 'ready' && rows.length > 0 && <table className="mr-board"><thead><tr><th>#</th><th>player</th><th>score</th><th>correct</th><th>time</th></tr></thead><tbody>
             {rows.map((row, i) => <tr key={i}><td>{i + 1}</td><td>{String(row.username ?? '—')}</td><td>{Number(row.score ?? row.best ?? 0)}</td><td>{Number(row.correct ?? 0)}</td><td>{Number(row.elapsed ?? row.fastest ?? 0)}s</td></tr>)}
           </tbody></table>}
-        </div>
+        </div>}
       </div>
     </section>
   )

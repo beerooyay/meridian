@@ -31,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('meridian:theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}` }} />
         <link rel="preload" href="/meridian/fonts/google-sans-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/meridian/data/countries.json" as="fetch" crossOrigin="anonymous" />
       </head>

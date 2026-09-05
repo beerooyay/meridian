@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import Gameplay from './gameplay'
-import { Back, Caret, Close } from './icons'
+import { Back, Caret, Close, User as UserIcon } from './icons'
 import { core, modes, scrambles } from './taxonomy'
 import type { Mode } from './taxonomy'
 
@@ -191,6 +191,79 @@ function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; op
 const casualcore = core('casual')
 const casualscrambles = scrambles('casual')
 
+const themes = [
+  { id: 'system', name: 'system' },
+  { id: 'light', name: 'light' },
+  { id: 'dark', name: 'dark' },
+] as const
+type Theme = typeof themes[number]['id']
+
+function applytheme(next: Theme) {
+  try {
+    if (next === 'system') {
+      localStorage.removeItem('meridian:theme')
+      delete document.documentElement.dataset.theme
+    } else {
+      localStorage.setItem('meridian:theme', next)
+      document.documentElement.dataset.theme = next
+    }
+  } catch {}
+}
+
+function Profilebox({ user, close, signout, saved }: { user: User; close: () => void; signout: () => void; saved: (name: string) => void }) {
+  const [name, setName] = useState(user.username ?? '')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const stored = localStorage.getItem('meridian:theme')
+      return stored === 'light' || stored === 'dark' ? stored : 'system'
+    } catch { return 'system' }
+  })
+  const dirty = name.trim().toLowerCase() !== (user.username ?? '')
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!dirty || busy) return
+    setBusy(true)
+    setNotice('')
+    try {
+      const response = await fetch('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name }) })
+      const data = await response.json().catch(() => null) as { error?: string; profile?: { username: string | null } } | null
+      if (!response.ok) throw new Error(data?.error || 'could not save your profile.')
+      saved(data?.profile?.username ?? name.trim().toLowerCase())
+      setNotice('saved.')
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'could not save your profile.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function picktheme(next: Theme) {
+    setTheme(next)
+    applytheme(next)
+  }
+
+  return (
+    <div className="mr-layer" role="presentation" onPointerDown={(event) => event.target === event.currentTarget && close()}>
+      <section className="card mr-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <button className="btn quiet mr-close" type="button" aria-label="close" onClick={close}><Close /></button>
+        <div className="kicker">profile</div>
+        <h2 id="profile-title">@{user.username ?? 'player'}</h2>
+        <p>your name on the boards, your pace everywhere else.</p>
+        <form className="mr-form" onSubmit={save}>
+          <label>username<input className="field" name="username" type="text" autoComplete="username" minLength={3} maxLength={18} pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{2,17}" value={name} onChange={event => setName(event.target.value)} required /></label>
+          {notice && <div className="mr-notice" role="status">{notice}</div>}
+          <button className="btn wide" type="submit" disabled={busy || !dirty}>{busy ? 'saving' : 'save username'}</button>
+        </form>
+        <div className="mr-setrow"><span>theme</span><div>{themes.map(item => <button key={item.id} className={`chip ${theme === item.id ? 'on' : ''}`} type="button" onClick={() => picktheme(item.id)}>{item.name}</button>)}</div></div>
+        <button className="btn ghost wide" type="button" onClick={signout}>sign out</button>
+      </section>
+    </div>
+  )
+}
+
 export default function Shell() {
   const [phase, setPhase] = useState<Phase>('home')
   const [mode, setMode] = useState<Mode | null>(null)
@@ -200,6 +273,7 @@ export default function Shell() {
   const [holes, setHoles] = useState<9 | 18>(9)
   const [seed, setSeed] = useState('')
   const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState(false)
 
   const day = new Date().toISOString().slice(0, 10)
 
@@ -214,6 +288,7 @@ export default function Shell() {
   async function signout() {
     try { await fetch('/api/auth/signout', { method: 'POST' }) } catch {}
     setUser(null)
+    setProfile(false)
     setPhase('home')
   }
 
@@ -221,12 +296,13 @@ export default function Shell() {
     function escape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
       if (auth) setAuth(null)
+      else if (profile) setProfile(false)
       else if (scopeopen) setScopeopen(false)
       else if (phase !== 'home') setPhase('home')
     }
     window.addEventListener('keydown', escape)
     return () => window.removeEventListener('keydown', escape)
-  }, [auth, phase, scopeopen])
+  }, [auth, phase, profile, scopeopen])
 
   const open = useCallback((next: Mode) => {
     setMode(next)
@@ -268,10 +344,8 @@ export default function Shell() {
     <div className="mr-app">
       {phase !== 'ready' && <header className="mr-nav">
         <button className="mr-logo" type="button" onClick={() => setPhase('home')} aria-label="meridian home">
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcSet="/meridian/branding/logo-text-white.png" />
-            <img src="/meridian/branding/logo-text-black.png" alt="meridian" width="210" height="48" />
-          </picture>
+          <img className="logo-light" src="/meridian/branding/logo-text-black.png" alt="meridian" width="210" height="48" />
+          <img className="logo-dark" src="/meridian/branding/logo-text-white.png" alt="" width="210" height="48" aria-hidden="true" />
         </button>
         <nav aria-label="primary">
           <button className="btn quiet" type="button" onClick={() => jump('daily')}>daily</button>
@@ -280,7 +354,7 @@ export default function Shell() {
           <button className="btn quiet" type="button" onClick={() => setPhase('boards')}>boards</button>
         </nav>
         {user
-          ? <div className="mr-user"><button className="btn ghost" type="button" onClick={() => setPhase('boards')}>{user.username ?? 'player'}</button><button className="btn quiet" type="button" onClick={signout}>sign out</button></div>
+          ? <button className="mr-avatar" type="button" onClick={() => setProfile(true)} aria-label="profile settings"><UserIcon /></button>
           : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
       </header>}
 
@@ -338,6 +412,7 @@ export default function Shell() {
       {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox key={auth} kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
+      {profile && user && <Profilebox user={user} close={() => setProfile(false)} signout={signout} saved={name => setUser({ ...user, username: name })} />}
     </div>
   )
 }

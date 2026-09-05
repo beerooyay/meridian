@@ -45,7 +45,7 @@ for (const width of [390, 820, 1440]) {
     await expect(page.locator('.mr-grid').first()).toHaveCSS('display', 'grid')
     await expect(page.locator('.mr-card').first()).toHaveCSS('display', 'flex')
     await expect(page.locator('.mr-card svg')).toHaveCount(0)
-    const logo = page.locator('.mr-logo img')
+    const logo = page.locator('.mr-logo img:visible')
     await expect(logo).toBeVisible()
     await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
     expect(await logo.evaluate(image => image.getBoundingClientRect().width)).toBeGreaterThanOrEqual(150)

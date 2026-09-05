@@ -35,12 +35,17 @@ export const input = (value: unknown): value is string | number => (typeof value
 export const payload = (item: Question, run: string, q: number, flagdata?: string | null) =>
   sanitize(item, flagdata || (item.flag ? `/api/ranked/flag?run=${encodeURIComponent(run)}&q=${q}` : undefined))
 
+const flags = new Map<string, string | undefined>()
 export async function loadflag(id: string): Promise<string | undefined> {
-  if (!/^[a-z]{2}$/i.test(id)) return undefined
+  const lower = id.toLowerCase()
+  if (flags.has(lower)) return flags.get(lower)
+  if (!/^[a-z]{2}$/.test(lower)) return undefined
   try {
-    const svg = await readFile(join(process.cwd(), 'public/meridian/flags', `${id.toLowerCase()}.svg`), 'utf8')
-    return `data:image/svg+xml;base64,${Buffer.from(cleansvg(svg, id.toLowerCase())).toString('base64')}`
-  } catch { return undefined }
+    const svg = await readFile(join(process.cwd(), 'public/meridian/flags', `${lower}.svg`), 'utf8')
+    const data = `data:image/svg+xml;base64,${Buffer.from(cleansvg(svg, lower)).toString('base64')}`
+    flags.set(lower, data)
+    return data
+  } catch { flags.set(lower, undefined); return undefined }
 }
 
 export const cleansvg = (svg: string, id: string) =>
@@ -56,6 +61,7 @@ export const message = (text?: string) => {
   if (!text) return 'ranked request failed'
   if (text.includes('expired')) return 'ranked run expired'
   if (text.includes('not active')) return 'ranked run is not active'
+  if (text.includes('not found')) return 'ranked run not found'
   if (text.includes('sequence')) return 'question out of sequence'
   if (text.includes('still active')) return 'ranked run is still active'
   return 'ranked request failed'

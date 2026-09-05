@@ -16,10 +16,11 @@ export async function POST(request: Request) {
   const run = await found.db.from('runs').select('id,uid,game,mode,qcount,config').eq('id', body.run).eq('uid', found.user.id).eq('mode', 'ranked').maybeSingle()
   if (run.error) return fail(500, 'ranked run unavailable')
   if (!run.data) return fail(404, 'ranked run not found')
-  const raw = run.data.config as { deck?: unknown }
-  if (!Array.isArray(raw.deck) || raw.deck.length !== run.data.qcount || !raw.deck.every(question)) return fail(500, 'ranked run is invalid')
-  const item = raw.deck[q - 1] as Question | undefined
-  if (!item) return fail(409, 'question out of sequence')
+  const raw = run.data.config as { deck?: unknown[] }
+  if (!Array.isArray(raw.deck) || raw.deck.length !== run.data.qcount) return fail(500, 'ranked run is invalid')
+  if (q < 1 || q > raw.deck.length) return fail(409, 'question out of sequence')
+  const item = raw.deck[q - 1]
+  if (!question(item)) return fail(500, 'ranked run is invalid')
   const correct = validate(found.index, item, answer)
   const saved = await found.db.rpc('rankedanswer', { p_run: body.run, p_uid: found.user.id, p_q: q, p_answer: answer, p_correct: correct })
   if (saved.error) {
@@ -29,12 +30,13 @@ export async function POST(request: Request) {
   const attempt = Array.isArray(saved.data) ? saved.data[0] : saved.data
   if (!attempt) return fail(500, 'ranked answer unavailable')
   const next = raw.deck[q] as Question | undefined
-  const flagdata = next?.flag ? await loadflag(next.flag) : undefined
+  const validnext = next && question(next) ? next : null
+  const flagdata = validnext?.flag ? await loadflag(validnext.flag) : undefined
   return NextResponse.json({
     q,
     correct: Boolean(attempt.correct),
     points: Number(attempt.points),
     reveal: reveal(item),
-    next: next ? { q: q + 1, question: payload(next, body.run, q + 1, flagdata) } : null,
+    next: validnext ? { q: q + 1, question: payload(validnext, body.run, q + 1, flagdata) } : null,
   })
 }

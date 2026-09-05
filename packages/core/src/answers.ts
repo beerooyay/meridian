@@ -52,7 +52,9 @@ const forms = (value: unknown): string[] => {
   return plain ? [...new Set([plain, core(plain)])].filter(item => item.length > 1) : []
 }
 
+const cache = new WeakMap<Countries, Answers>()
 export function answers(index: Countries, extra: Readonly<Record<CountryId, readonly string[]>> = aliases): Answers {
+  if (extra === aliases) { const hit = cache.get(index); if (hit) return hit }
   const keys = new Map<CountryId, ReadonlySet<string>>()
   const owners = new Map<string, Set<CountryId>>()
   for (const item of index.all) {
@@ -65,7 +67,9 @@ export function answers(index: Countries, extra: Readonly<Record<CountryId, read
       owners.set(key, found)
     }
   }
-  return Object.freeze({ keys, owners })
+  const result = Object.freeze({ keys, owners })
+  if (extra === aliases) cache.set(index, result)
+  return result
 }
 
 function edits(left: string, right: string, ceiling = 2): number {

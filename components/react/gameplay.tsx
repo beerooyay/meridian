@@ -10,12 +10,12 @@ type Saved = { at: number; right: number; wrong: number; done: boolean }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
 const flag = (value: string) => value.startsWith('/') || value.startsWith('data:') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
-const warm = (value?: string) => { if (!value) return; const url = flag(value); if (url.startsWith('data:')) return; const img = new Image(); img.src = url; img.decode?.().catch(() => {}) }
+const warm = (value?: string) => { if (!value) return; const url = flag(value); if (url.startsWith('data:')) return; const img = new Image(); img.src = url; if (typeof img.decode === 'function') img.decode().catch(() => {}) }
 const format = (value: number) => new Intl.NumberFormat('en', { notation: value >= 1e6 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value)
 const post = (url: string, body: unknown) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
 let atlas: Promise<Countries> | null = null
-const load = () => atlas ??= fetch('/meridian/data/countries.json').then(value => { if (!value.ok) throw new Error('country atlas could not be loaded.'); return value.json() }).then((raw: MeridianSource) => source(raw))
+const load = () => { if (!atlas) atlas = fetch('/meridian/data/countries.json').then(value => { if (!value.ok) throw new Error('country atlas could not be loaded.'); return value.json() }).then((raw: MeridianSource) => source(raw)).catch(reason => { atlas = null; throw reason }); return atlas }
 
 function Tiles({ item, locked, right, submit }: { item: PublicQuestion; locked: boolean; right?: boolean | null; submit: (value: string) => void }) {
   const [used, setUsed] = useState<number[]>([])
@@ -23,8 +23,8 @@ function Tiles({ item, locked, right, submit }: { item: PublicQuestion; locked: 
   const word = used.map(index => item.letters[index]).join('')
   return <div className="gp-tiles">
     <div className={`gp-word ${locked && right !== null ? (right ? 'correct' : 'wrong') : ''}`}>{word || 'build the answer'}</div>
-    <div className="gp-letters">{item.letters.map((letter, index) => <button type="button" className="chip" disabled={locked || used.includes(index)} onClick={() => setUsed([...used, index])} key={`${letter}:${index}`}>{letter}</button>)}</div>
-    <div className="gp-actions"><button className="btn ghost" type="button" disabled={locked || !used.length} onClick={() => setUsed(used.slice(0, -1))}>undo</button><button className="btn" type="button" disabled={locked || used.length !== item.letters.length} onClick={() => submit(word)}>check</button></div>
+    <div className="gp-letters">{item.letters.map((letter, index) => <button type="button" className="chip" disabled={locked || used.includes(index)} onClick={() => setUsed(prev => [...prev, index])} key={`${letter}:${index}`}>{letter}</button>)}</div>
+    <div className="gp-actions"><button className="btn ghost" type="button" disabled={locked || !used.length} onClick={() => setUsed(prev => prev.slice(0, -1))}>undo</button><button className="btn" type="button" disabled={locked || used.length !== item.letters.length} onClick={() => submit(word)}>check</button></div>
   </div>
 }
 
@@ -59,7 +59,7 @@ function Prompt({ item, locked, picked, correct, right, reveal, answer }: { item
 }
 
 function Next({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button className="btn gp-next" type="button" onClick={onClick}>{label}</button>
+  return <button className="btn" type="button" onClick={onClick}>{label}</button>
 }
 
 function Head({ back, label, score, meter }: { back: () => void; label: string; score: ReactNode; meter: ReactNode }) {
@@ -180,7 +180,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
 
   useEffect(() => {
     let live = true
-    setIssued(null); setItem(null); setQ(1); setPoints(0); setFeedback(null); setResult(null); setError('')
+    setIssued(null); setItem(null); setQ(1); setPoints(0); setFeedback(null); setResult(null); setError(''); setBusy(false); setPicked(null)
     post('/api/ranked/issue', { game: mode.id, scope: scope.id })
       .then(async response => {
         const data = await response.json().catch(() => null) as (Issued & { error?: string }) | null
@@ -258,8 +258,8 @@ function Dogleg({ index, scope, holes, seed, mode, back }: { index: Countries; s
 
 function Holes({ index, scope, course, saved, length, storage, back }: { index: Countries; scope: Scope; course: DoglegCourse; saved: Course; length: 9 | 18; storage: string | null; back: () => void }) {
   const [at, setAt] = useState(Math.min(saved.at ?? 0, course.holes.length))
-  const safe = Math.min(at, course.holes.length - 1)
-  const hole = course.holes[safe]!
+  const safe = Math.min(at, course.holes.length)
+  const hole = course.holes[Math.min(at, course.holes.length - 1)]!
   const valid = Array.isArray(saved.route) && saved.route.length > 0 && saved.route[0] === hole.from && saved.route.every(id => index.byId.has(id))
   const [route, setRoute] = useState<string[]>(valid ? saved.route! : [hole.from])
   const [scores, setScores] = useState<number[]>(Array.isArray(saved.scores) ? saved.scores.slice(0, safe) : [])
@@ -278,12 +278,12 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
     if (complete) return
     const edge = [current, id].sort().join(':')
     setMastered(old => old.has(edge) ? old : new Set([...old, edge]))
-    setRoute([...route, id])
+    setRoute(prev => [...prev, id])
   }
   function next() {
     const hops = status.reached ? status.hops : hole.par + 2
-    setScores([...scores, hops])
-    setTrails([...trails, status.hops])
+    setScores(prev => [...prev, hops])
+    setTrails(prev => [...prev, status.hops])
     if (at + 1 === course.holes.length) { setAt(course.holes.length); return }
     setAt(at + 1); setRoute([course.holes[at + 1]!.from]); setGave(false)
   }
@@ -322,13 +322,13 @@ export default function Gameplay(props: Props) {
     body.style.overflow = 'hidden'
     return () => { body.style.overflow = previous }
   }, [])
+  const scopeid = useMemo(() => {
+    if (props.mode.group !== 'daily') return props.scope
+    try { return (JSON.parse(localStorage.getItem(stamp(props.mode, props.seed)) || '{}') as { scope?: string }).scope ?? props.scope } catch { return props.scope }
+  }, [props.mode, props.seed, props.scope])
+  const selected = useMemo(() => index ? (getscopes(index).find(item => item.id === scopeid) ?? getscope(index)) : null, [index, scopeid])
   if (error) return <section className="gp-shell"><div className="gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>
-  if (!index) return <section className="gp-shell"><div className="gp-card"><div className="kicker">loading atlas</div><h2>preparing your run</h2></div></section>
-  let scopeid = props.scope
-  if (props.mode.group === 'daily') {
-    try { scopeid = (JSON.parse(localStorage.getItem(stamp(props.mode, props.seed)) || '{}') as { scope?: string }).scope ?? scopeid } catch {}
-  }
-  const selected = getscopes(index).find(item => item.id === scopeid) ?? getscope(index)
+  if (!index || !selected) return <section className="gp-shell"><div className="gp-card"><div className="kicker">loading atlas</div><h2>preparing your run</h2></div></section>
   if (props.mode.group === 'ranked') return <Ranked mode={props.mode} scope={selected} back={props.back} />
   if (props.mode.id.endsWith('dogleg')) return <Dogleg index={index} scope={selected} holes={props.holes} seed={props.seed} mode={props.mode} back={props.back} />
   return <Quiz index={index} mode={props.mode} scope={selected} seed={props.seed} back={props.back} />

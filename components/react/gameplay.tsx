@@ -36,7 +36,7 @@ function Dial({ item, locked, right, submit }: { item: PublicQuestion; locked: b
   return <div className="gp-dial"><strong className={locked ? (right ? 'correct' : 'wrong') : ''}>{format(value)}</strong><span className="kicker">people</span><input type="range" min="0" max="100" step="0.1" value={step} disabled={locked} aria-label="population estimate" onChange={event => setStep(Number(event.target.value))} /><div className="gp-scale"><span>1 thousand</span><span>2 billion</span></div><button className="btn" type="button" disabled={locked} onClick={() => submit(value)}>lock estimate</button></div>
 }
 
-function Prompt({ item, locked, picked, correct, right, answer }: { item: PublicQuestion; locked: boolean; picked?: string | number | null; correct?: string | null; right?: boolean | null; answer: (value: string | number) => void }) {
+function Prompt({ item, locked, picked, correct, right, reveal, answer }: { item: PublicQuestion; locked: boolean; picked?: string | number | null; correct?: string | null; right?: boolean | null; reveal?: string | null; answer: (value: string | number) => void }) {
   const [input, setInput] = useState('')
   useEffect(() => setInput(''), [item.id])
   function send(event: FormEvent) { event.preventDefault(); if (input.trim()) answer(input) }
@@ -44,13 +44,14 @@ function Prompt({ item, locked, picked, correct, right, answer }: { item: Public
   const typed = item.kind !== 'choice' && item.kind !== 'compare'
   return <>
     {item.flag && <img className="gp-flag" src={flag(item.flag)} alt="country flag" width="520" height="390" />}
+    <div className="gp-reveal">{reveal ?? ''}</div>
     <h2>{item.prompt}</h2>
     {item.note && <p className="gp-note">{item.note}</p>}
     {(item.kind === 'choice' || item.kind === 'compare') && <div className="gp-options">{item.options.map(option => <button type="button" className={mark(option)} disabled={locked} onClick={() => answer(option)} key={option}>{option}</button>)}</div>}
     {item.kind === 'text' && <form className="gp-form" onSubmit={send}><input className={`field ${locked ? (right ? 'correct' : 'wrong') : ''}`} autoFocus value={input} disabled={locked} onChange={event => setInput(event.target.value)} placeholder="type a country" aria-label="answer" /><button className="btn" disabled={locked}>check</button></form>}
     {item.kind === 'tiles' && <Tiles item={item} locked={locked} right={right} submit={answer} />}
     {item.kind === 'dial' && <Dial item={item} locked={locked} right={right} submit={answer} />}
-    {locked && typed && !right && correct && <p className="gp-caption">answer: {correct}</p>}
+    {typed && <p className="gp-caption">{locked && !right && correct ? `answer: ${correct}` : ''}</p>}
   </>
 }
 
@@ -118,8 +119,7 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
     <div className="gp-card">
       <div className="gp-body">
         <div className="kicker">{item.topic}</div>
-        <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} answer={answer} />
-        {result !== null && item.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(item.value)} {item.unit}</p>}
+        <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} reveal={result !== null && item.value !== undefined && item.kind !== 'dial' ? `${format(item.value)} ${item.unit}` : null} answer={answer} />
       </div>
       <div className="gp-toolbar">{result !== null && <Next label={last ? 'finish' : 'next'} onClick={next} />}</div>
     </div>
@@ -244,8 +244,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     <div className="gp-card">
       <div className="gp-body">
         <div className="kicker">{item.topic} · {q}</div>
-        <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} answer={answer} />
-        {feedback && feedback.reveal.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(feedback.reveal.value)} {feedback.reveal.unit}</p>}
+        <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} reveal={feedback?.reveal.value !== undefined && item.kind !== 'dial' ? `${format(feedback.reveal.value)} ${feedback.reveal.unit}` : null} answer={answer} />
         {error && <div className="mr-notice">{error}</div>}
       </div>
       <div className="gp-toolbar">{feedback && <Next label={feedback.next ? 'next' : 'finish'} onClick={next} />}</div>
@@ -310,8 +309,10 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
         <h2>{name(hole.from)} → {name(hole.to)}</h2>
         <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>
         <div className="gp-dogstats"><span><b>{status.hops}</b>hops</span><span><b>{Math.round(status.distance).toLocaleString()}</b>km</span><span><b>{mastered.size}</b>borders</span></div>
-        {!complete && <><p className="gp-note">choose a country adjacent to {name(current)}.</p><div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} key={id}>{name(id)}</button>)}</div><button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button></>}
-        {complete && <p className={`gp-caption ${gave ? 'wrong' : 'correct'}`}>{gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`}</p>}
+        <p className="gp-note">{!complete ? `choose a country adjacent to ${name(current)}.` : ''}</p>
+        <div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} disabled={complete} key={id}>{name(id)}</button>)}</div>
+        <p className={`gp-caption ${complete ? (gave ? 'wrong' : 'correct') : ''}`}>{complete ? (gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`) : ''}</p>
+        {!complete && <button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button>}
       </div>
       <div className="gp-toolbar">{complete && <Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} />}</div>
     </div>

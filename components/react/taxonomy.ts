@@ -12,41 +12,41 @@ export type Mode = {
 }
 
 const daily = [
-  ['daily-choice', 'Choice', 'Four answers, one clean decision.', 'Read the country prompt and choose the right answer from four options.', '10 questions'],
-  ['daily-chance', 'Chance', 'Name each flag without a safety net.', 'Type the country flown by each flag in one shared daily run.', '1 attempt'],
-  ['daily-dogleg', 'Dogleg', 'Navigate borders in as few moves as possible.', 'Plot a route between countries over shared land borders. Pick a short front nine or a full eighteen.', 'golf scoring'],
-  ['daily-world-scramble', 'World Scramble', 'A deterministic world medley.', 'Solve letter tiles, comparisons, capitals, languages, and borders in one shared deck.', '10 questions'],
+  ['daily-choice', 'choice', 'ten multiple-choice questions on capitals, borders, languages, and flags. same ten for everyone today.', 'one shared deck of ten prompts, each with four answers. one attempt per day, scored on accuracy.', '10 questions'],
+  ['daily-chance', 'chance', 'ten flags, no options. type the country name from memory.', 'today\'s ten flags in a shared order. type the country each flag belongs to. one attempt, scored on accuracy.', '1 attempt'],
+  ['daily-dogleg', 'dogleg', 'travel between two countries by crossing land borders in the fewest hops. par is the true shortest path.', 'today\'s course runs the whole world. each hole gives you a start and a finish; move only through neighboring countries and try to match par. choose nine or eighteen holes.', 'golf scoring'],
+  ['daily-world-scramble', 'world scramble', 'ten mixed puzzles: letter tiles, population dials, capitals, and borders in one deck.', 'a shared medley across every question type. unscramble names, estimate populations, and connect capitals in one daily run.', '10 questions'],
 ] as const
 
 const ranked = [
-  ['ranked-choice', 'Choice', 'Fast answers climb the table.', 'Choose the correct country before the clock expires and build a ranked score.', '60 seconds'],
-  ['ranked-chance', 'Chance', 'Mixed prompts under pressure.', 'Adapt to a timed sequence of geography prompts and compete for the best score.', '60 seconds'],
-  ['ranked-flags-scramble', 'Flags Scramble', 'Flags, letters, and a running clock.', 'Identify flags and rebuild their country names while every second counts.', '60 seconds'],
+  ['ranked-choice', 'choice', 'sixty seconds of multiple choice. every correct answer scores; speed climbs the board.', 'answer as many four-option prompts as you can before the clock runs out. scoring is server-verified and ranks by season.', '60 seconds'],
+  ['ranked-chance', 'chance', 'sixty seconds of mixed prompts with no options. type fast, type right.', 'a timed sequence of typed answers across flags, capitals, and countries. only finished runs count on the board.', '60 seconds'],
+  ['ranked-flags-scramble', 'flags scramble', 'see a flag, rebuild the country name from shuffled letters before time runs out.', 'each flag comes with its name in scrambled tiles. tap letters in order to spell it. sixty seconds, ranked by score.', '60 seconds'],
 ] as const
 
 const casual = [
-  ['casual-choice', 'Choice', 'Country knowledge at your pace.', 'Choose from four answers with no leaderboard pressure.', 'untimed'],
-  ['casual-chance', 'Chance', 'A varied tour of the atlas.', 'Move through a relaxed mix of country facts and prompts.', 'untimed'],
-  ['casual-flags-scramble', 'Flags Scramble', 'Turn flags into country names.', 'Recognize each flag, then rebuild the matching country name.', 'untimed'],
-  ['casual-population-scramble', 'Population Scramble', 'Compare and estimate populations.', 'Alternate country comparisons with a smooth logarithmic population dial.', 'untimed'],
-  ['casual-border-scramble', 'Border Scramble', 'Untangle neighboring countries.', 'Build valid groups and routes from countries that share borders.', 'untimed'],
-  ['casual-capital-scramble', 'Capital Scramble', 'Match capitals back to their countries.', 'Rebuild capital and country pairings from a shuffled set.', 'untimed'],
-  ['casual-world-scramble', 'World Scramble', 'The full map, mixed together.', 'Unscramble country names drawn from your selected scope.', 'untimed'],
-  ['casual-dogleg', 'Dogleg', 'Play a generated course at your pace.', 'Navigate nine or eighteen generated holes and finish under the map’s true par.', 'golf scoring'],
-  ['casual-population', 'Population', 'Which country has more people?', 'Compare two countries and choose the larger population.', 'endless'],
-  ['casual-sizes', 'Sizes', 'Which country covers more ground?', 'Compare countries by total area and learn the scale of the map.', 'endless'],
-  ['casual-capitals', 'Capitals', 'Cities to countries and back.', 'Connect capital cities with the countries they represent.', 'endless'],
-  ['casual-languages', 'Languages', 'Follow the world through language.', 'Identify official and widely spoken languages by country.', 'endless'],
-  ['casual-borders', 'Borders', 'Learn who touches whom.', 'Choose which countries share a land border.', 'endless'],
+  ['casual-choice', 'choice', 'multiple-choice questions on capitals, borders, languages, and flags. no clock, no board.', 'ten four-option prompts drawn from your chosen region. practice mode with local stats only.', 'untimed'],
+  ['casual-chance', 'chance', 'typed answers across flags, capitals, and countries. no options to lean on.', 'a relaxed mix of prompts where you type the answer. minor typos are forgiven.', 'untimed'],
+  ['casual-flags-scramble', 'flags scramble', 'see a flag, then spell the country from shuffled letter tiles.', 'each flag arrives with its name scrambled. tap the letters into order and check your spelling.', 'untimed'],
+  ['casual-population-scramble', 'population scramble', 'compare two populations, then estimate a third on a logarithmic dial.', 'alternates head-to-head population comparisons with dial estimates from one thousand to two billion.', 'untimed'],
+  ['casual-border-scramble', 'border scramble', 'which of these countries actually share a border? spot the true neighbors.', 'pick the real land neighbor from a set of plausible decoys drawn from the same region.', 'untimed'],
+  ['casual-capital-scramble', 'capital scramble', 'spell a capital city from shuffled letters, given its country.', 'capital names arrive as scrambled tiles. rebuild them one letter at a time.', 'untimed'],
+  ['casual-world-scramble', 'world scramble', 'every puzzle type mixed into one deck: tiles, dials, comparisons, and more.', 'a medley across letter tiles, population dials, capitals, languages, and borders from your selected region.', 'untimed'],
+  ['casual-dogleg', 'dogleg', 'cross land borders from one country to another in as few hops as possible. par is the shortest route.', 'a freshly generated course in your chosen region. each hole is a start and finish; move only through neighbors and try to beat par. nine or eighteen holes.', 'golf scoring'],
+  ['casual-population', 'population', 'two countries. which has more people? endless rounds.', 'straight head-to-head population comparisons until you stop.', 'endless'],
+  ['casual-sizes', 'sizes', 'two countries. which covers more land? endless rounds.', 'head-to-head comparisons by total area. learn the true scale of the map.', 'endless'],
+  ['casual-capitals', 'capitals', 'name the capital of a country, or the country of a capital. four options.', 'multiple-choice capitals in both directions, drawn from your chosen region.', 'endless'],
+  ['casual-languages', 'languages', 'which language is official or widely spoken here? four options.', 'multiple-choice prompts on official and major languages by country.', 'endless'],
+  ['casual-borders', 'borders', 'which of these four countries touches the one shown? endless rounds.', 'multiple-choice land-border questions. decoys come from the same region to keep it honest.', 'endless'],
 ] as const
 
 const make = (group: Group, rows: readonly (readonly [string, string, string, string, string])[]): Mode[] =>
   rows.map(([id, name, summary, detail, metric]) => ({ id, name, group, summary, detail, metric }))
 
 export const modes: Record<Group, Mode[]> = {
-  daily: make('daily', daily).map((mode) => mode.name === 'Dogleg' ? { ...mode, holes: [9, 18] as const } : mode),
+  daily: make('daily', daily).map((mode) => mode.name === 'dogleg' ? { ...mode, holes: [9, 18] as const } : mode),
   ranked: make('ranked', ranked).map((mode) => ({ ...mode, timed: true })),
-  casual: make('casual', casual).map((mode) => mode.name === 'Dogleg' ? { ...mode, holes: [9, 18] as const } : mode),
+  casual: make('casual', casual).map((mode) => mode.name === 'dogleg' ? { ...mode, holes: [9, 18] as const } : mode),
 }
 
 export const all = Object.values(modes).flat()

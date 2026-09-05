@@ -16,7 +16,11 @@ export async function POST(request: Request) {
   const client = await server()
   if (!client) return off()
   const { data, error } = await client.auth.signInWithPassword({ email: mail, password: pass })
-  if (error || !data.user) return fail(401, "invalid credentials")
+  if (error || !data.user) {
+    const text = error?.message.toLowerCase() ?? ""
+    if (text.includes("not confirmed")) return fail(401, "check your email to confirm your account first")
+    return fail(401, "invalid credentials")
+  }
   const profile = await client.from("profiles").select("username").eq("uid", data.user.id).single()
   if (profile.error || !profile.data) {
     await client.auth.signOut()

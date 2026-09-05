@@ -20,3 +20,8 @@ __v0_jsx-dev-runtime.ts
 
 # os
 .DS_Store
+.vercel
+.env*
+
+# supabase cli
+supabase/.temp/

@@ -273,6 +273,7 @@ export default function Shell() {
   const [holes, setHoles] = useState<9 | 18>(9)
   const [seed, setSeed] = useState('')
   const [user, setUser] = useState<User | null>(null)
+  const [checked, setChecked] = useState(false)
   const [profile, setProfile] = useState(false)
 
   const day = new Date().toISOString().slice(0, 10)
@@ -281,6 +282,7 @@ export default function Shell() {
     const res = await fetch('/api/auth/session').catch(() => null)
     const data = res ? await res.json().catch(() => null) as { user?: User | null } | null : null
     setUser(data?.user ?? null)
+    setChecked(true)
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
@@ -353,9 +355,9 @@ export default function Shell() {
           <button className="btn quiet" type="button" onClick={() => jump('casual')}>casual</button>
           <button className="btn quiet" type="button" onClick={() => setPhase('boards')}>boards</button>
         </nav>
-        {user
+        {checked && (user
           ? <button className="mr-avatar" type="button" onClick={() => setProfile(true)} aria-label="profile settings"><UserIcon /></button>
-          : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
+          : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>)}
       </header>}
 
       <main className="mr-view">
@@ -409,7 +411,7 @@ export default function Shell() {
         {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} openscope={() => setScopeopen(true)} />}
       </main>
 
-      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
+      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{checked && !user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox key={auth} kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
       {profile && user && <Profilebox user={user} close={() => setProfile(false)} signout={signout} saved={name => setUser({ ...user, username: name })} />}

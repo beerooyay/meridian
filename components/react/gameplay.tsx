@@ -17,38 +17,44 @@ const post = (url: string, body: unknown) => fetch(url, { method: 'POST', header
 let atlas: Promise<Countries> | null = null
 const load = () => atlas ??= fetch('/meridian/data/countries.json').then(value => { if (!value.ok) throw new Error('country atlas could not be loaded.'); return value.json() }).then((raw: MeridianSource) => source(raw))
 
-function Tiles({ item, locked, submit }: { item: PublicQuestion; locked: boolean; submit: (value: string) => void }) {
+function Tiles({ item, locked, right, submit }: { item: PublicQuestion; locked: boolean; right?: boolean | null; submit: (value: string) => void }) {
   const [used, setUsed] = useState<number[]>([])
   useEffect(() => setUsed([]), [item.id])
   const word = used.map(index => item.letters[index]).join('')
   return <div className="gp-tiles">
-    <div className="gp-word">{word || 'build the answer'}</div>
+    <div className={`gp-word ${locked ? (right ? 'correct' : 'wrong') : ''}`}>{word || 'build the answer'}</div>
     <div className="gp-letters">{item.letters.map((letter, index) => <button type="button" className="chip" disabled={locked || used.includes(index)} onClick={() => setUsed([...used, index])} key={`${letter}:${index}`}>{letter}</button>)}</div>
     <div className="gp-actions"><button className="btn ghost" type="button" disabled={locked || !used.length} onClick={() => setUsed(used.slice(0, -1))}>undo</button><button className="btn" type="button" disabled={locked || used.length !== item.letters.length} onClick={() => submit(word)}>check</button></div>
   </div>
 }
 
-function Dial({ item, locked, submit }: { item: PublicQuestion; locked: boolean; submit: (value: number) => void }) {
+function Dial({ item, locked, right, submit }: { item: PublicQuestion; locked: boolean; right?: boolean | null; submit: (value: number) => void }) {
   const [step, setStep] = useState(50)
   useEffect(() => setStep(50), [item.id])
   const value = Math.round(10 ** (3 + step / 100 * Math.log10(2e6)))
-  return <div className="gp-dial"><strong>{format(value)}</strong><span className="kicker">people</span><input type="range" min="0" max="100" step="0.1" value={step} disabled={locked} aria-label="population estimate" onChange={event => setStep(Number(event.target.value))} /><div className="gp-scale"><span>1 thousand</span><span>2 billion</span></div><button className="btn" type="button" disabled={locked} onClick={() => submit(value)}>lock estimate</button></div>
+  return <div className="gp-dial"><strong className={locked ? (right ? 'correct' : 'wrong') : ''}>{format(value)}</strong><span className="kicker">people</span><input type="range" min="0" max="100" step="0.1" value={step} disabled={locked} aria-label="population estimate" onChange={event => setStep(Number(event.target.value))} /><div className="gp-scale"><span>1 thousand</span><span>2 billion</span></div><button className="btn" type="button" disabled={locked} onClick={() => submit(value)}>lock estimate</button></div>
 }
 
-function Prompt({ item, locked, picked, correct, answer }: { item: PublicQuestion; locked: boolean; picked?: string | number | null; correct?: string | null; answer: (value: string | number) => void }) {
+function Prompt({ item, locked, picked, correct, right, answer }: { item: PublicQuestion; locked: boolean; picked?: string | number | null; correct?: string | null; right?: boolean | null; answer: (value: string | number) => void }) {
   const [input, setInput] = useState('')
   useEffect(() => setInput(''), [item.id])
   function send(event: FormEvent) { event.preventDefault(); if (input.trim()) answer(input) }
   const mark = (option: string) => !locked ? '' : option === correct ? 'yes' : option === picked ? 'no' : ''
+  const typed = item.kind !== 'choice' && item.kind !== 'compare'
   return <>
-    {item.flag && <img className="gp-flag" src={flag(item.flag)} alt="country flag" width="300" height="200" />}
+    {item.flag && <img className="gp-flag" src={flag(item.flag)} alt="country flag" width="520" height="390" />}
     <h2>{item.prompt}</h2>
     {item.note && <p className="gp-note">{item.note}</p>}
     {(item.kind === 'choice' || item.kind === 'compare') && <div className="gp-options">{item.options.map(option => <button type="button" className={mark(option)} disabled={locked} onClick={() => answer(option)} key={option}>{option}</button>)}</div>}
-    {item.kind === 'text' && <form className="gp-form" onSubmit={send}><input className="field" autoFocus value={input} disabled={locked} onChange={event => setInput(event.target.value)} placeholder="type a country" aria-label="answer" /><button className="btn" disabled={locked}>check</button></form>}
-    {item.kind === 'tiles' && <Tiles item={item} locked={locked} submit={answer} />}
-    {item.kind === 'dial' && <Dial item={item} locked={locked} submit={answer} />}
+    {item.kind === 'text' && <form className="gp-form" onSubmit={send}><input className={`field ${locked ? (right ? 'correct' : 'wrong') : ''}`} autoFocus value={input} disabled={locked} onChange={event => setInput(event.target.value)} placeholder="type a country" aria-label="answer" /><button className="btn" disabled={locked}>check</button></form>}
+    {item.kind === 'tiles' && <Tiles item={item} locked={locked} right={right} submit={answer} />}
+    {item.kind === 'dial' && <Dial item={item} locked={locked} right={right} submit={answer} />}
+    {locked && typed && !right && correct && <p className="gp-caption">answer: {correct}</p>}
   </>
+}
+
+function Next({ label, onClick }: { label: string; onClick: () => void }) {
+  return <button className="btn gp-next" type="button" onClick={onClick}>{label}</button>
 }
 
 function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode; scope: Scope; seed: string; back: () => void }) {
@@ -95,13 +101,18 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
   if (done) return <Result right={right} wrong={wrong} back={back} stats={history} />
   return <section className="gp-shell">
     <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><span>{at + 1} / {questions.length}</span><strong>{right} right</strong></header>
-    <div className="card gp-card"><div className="kicker">{item.topic}</div><Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} answer={answer} />{result !== null && <div className="gp-feedback"><strong>{result ? 'correct' : `answer: ${item.answer}`}</strong>{item.value && item.kind !== 'dial' && <span>{format(item.value)} {item.unit}</span>}<button className="btn" type="button" onClick={next}>{at + 1 >= questions.length ? 'finish' : 'next'}</button></div>}</div>
+    <div className="gp-card">
+      {result !== null && <div className="gp-toolbar"><Next label={at + 1 >= questions.length ? 'finish' : 'next'} onClick={next} /></div>}
+      <div className="kicker">{item.topic}</div>
+      <Prompt item={item} locked={result !== null} picked={picked} correct={result !== null ? item.answer : null} right={result} answer={answer} />
+      {result !== null && item.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(item.value)} {item.unit}</p>}
+    </div>
   </section>
 }
 
 function Result({ right, wrong, back, stats }: { right: number; wrong: number; back: () => void; stats: Stats | null }) {
   const total = right + wrong
-  return <section className="gp-shell"><div className="card gp-card gp-result"><div className="kicker">run complete</div><h1>{right}<small> / {total}</small></h1><p>{total ? Math.round(right / total * 100) : 0}% accuracy · {wrong} missed</p>{stats && <div className="gp-withheld">{stats.runs} local runs · {stats.right} cumulative correct · {Math.round(stats.average * 100)}% average</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+  return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">run complete</div><h1>{right}<small> / {total}</small></h1><p>{total ? Math.round(right / total * 100) : 0}% accuracy · {wrong} missed</p>{stats && <div className="gp-withheld">{stats.runs} local runs · {stats.right} cumulative correct · {Math.round(stats.average * 100)}% average</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
 }
 
 type Issued = { run: string; season: string; q: number; qcount: number; expires: string; question: PublicQuestion }
@@ -207,10 +218,19 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     setQ(feedback.next.q); setItem(feedback.next.question); setFeedback(null); setPicked(null)
   }
 
-  if (error && !issued) return <section className="gp-shell"><div className="card gp-card"><div className="kicker">ranked unavailable</div><h2>{error === 'login required' ? 'log in to play ranked.' : error}</h2><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
-  if (!issued || !item) return <section className="gp-shell"><div className="card gp-card"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
-  if (result) return <section className="gp-shell"><div className="card gp-card gp-result"><div className="kicker">verified result</div><h1>{result.score}<small> points</small></h1><p>{result.correct} correct · {result.answered} answered · {(result.elapsed / 1000).toFixed(1)} seconds</p>{rows.length > 0 && <div className="gp-board"><strong>{issued.season} leaderboard</strong>{rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
-  return <section className="gp-shell"><header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><Clock expires={issued.expires} expire={finish} /><strong>{points} points</strong></header><div className="card gp-card"><div className="kicker">{item.topic} · {q}</div><Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} answer={answer} />{feedback && <div className="gp-feedback"><strong>{feedback.correct ? 'correct' : `answer: ${feedback.reveal.answer}`}</strong>{feedback.reveal.value !== undefined && item.kind !== 'dial' && <span>{format(feedback.reveal.value)} {feedback.reveal.unit}</span>}<button className="btn" type="button" onClick={next}>{feedback.next ? 'next' : 'finish'}</button></div>}{error && <div className="mr-notice">{error}</div>}</div></section>
+  if (error && !issued) return <section className="gp-shell"><div className="gp-card"><div className="kicker">ranked unavailable</div><h2>{error === 'login required' ? 'log in to play ranked.' : error}</h2><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+  if (!issued || !item) return <section className="gp-shell"><div className="gp-card"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
+  if (result) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">verified result</div><h1>{result.score}<small> points</small></h1><p>{result.correct} correct · {result.answered} answered · {(result.elapsed / 1000).toFixed(1)} seconds</p>{rows.length > 0 && <div className="gp-board"><strong>{issued.season} leaderboard</strong>{rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+  return <section className="gp-shell">
+    <header className="gp-head"><button className="btn quiet mr-back" type="button" onClick={back}>← end run</button><Clock expires={issued.expires} expire={finish} /><strong>{points} points</strong></header>
+    <div className="gp-card">
+      {feedback && <div className="gp-toolbar"><Next label={feedback.next ? 'next' : 'finish'} onClick={next} /></div>}
+      <div className="kicker">{item.topic} · {q}</div>
+      <Prompt item={item} locked={Boolean(feedback) || busy} picked={picked} correct={feedback?.reveal.answer ?? null} right={feedback?.correct ?? null} answer={answer} />
+      {feedback && feedback.reveal.value !== undefined && item.kind !== 'dial' && <p className="gp-caption">{format(feedback.reveal.value)} {feedback.reveal.unit}</p>}
+      {error && <div className="mr-notice">{error}</div>}
+    </div>
+  </section>
 }
 
 type Course = { at?: number; route?: string[]; scores?: number[]; trails?: number[]; gave?: boolean; mastered?: string[]; holes?: 9 | 18 }
@@ -220,7 +240,7 @@ function Dogleg({ index, scope, holes, seed, mode, back }: { index: Countries; s
   const saved = useMemo<Course>(() => { if (mode.group !== 'daily') return {}; try { const raw = JSON.parse(localStorage.getItem(key) || '{}') as Course; return { ...raw, holes: raw.holes === 18 ? 18 : raw.holes === 9 ? 9 : undefined, at: Math.max(0, Number(raw.at) || 0) } } catch { return {} } }, [key, mode.group])
   const length = saved.holes ?? holes
   const course = useMemo(() => { try { return dogleg(index, { holes: length, seed: `${seed}:${scope.id}:${length}`, scope: scope.countries }) } catch { return null } }, [index, length, scope, seed])
-  if (!course) return <section className="gp-shell"><div className="card gp-card"><div className="kicker">dogleg</div><h2>{scope.label} is too small for a full course.</h2><p>pick a larger region and try again.</p><button className="btn" onClick={back}>back</button></div></section>
+  if (!course) return <section className="gp-shell"><div className="gp-card"><div className="kicker">dogleg</div><h2>{scope.label} is too small for a full course.</h2><p>pick a larger region and try again.</p><button className="btn" onClick={back}>back</button></div></section>
   return <Holes key={`${key}:${length}`} index={index} scope={scope} course={course} saved={saved} length={length} storage={mode.group === 'daily' ? key : null} back={back} />
 }
 
@@ -259,18 +279,19 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
     const scored = scores.reduce((sum, value) => sum + value, 0)
     const actual = trails.reduce((sum, value) => sum + value, 0)
     const delta = scored - course.totalPar
-    return <section className="gp-shell"><div className="card gp-card gp-result"><div className="kicker">course complete</div><h1>{delta > 0 ? '+' : ''}{delta}</h1><p>par {course.totalPar} · scored {scored} · {actual} hops traveled · {Math.round(course.totalDistance).toLocaleString()} km</p><button className="btn" onClick={back}>return to modes</button></div></section>
+    return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">course complete</div><h1>{delta > 0 ? '+' : ''}{delta}</h1><p>par {course.totalPar} · scored {scored} · {actual} hops traveled · {Math.round(course.totalDistance).toLocaleString()} km</p><button className="btn" onClick={back}>return to modes</button></div></section>
   }
   const standing = scores.reduce((sum, value, i) => sum + value - course.holes[i]!.par, 0)
   return <section className="gp-shell">
     <header className="gp-head"><button className="btn quiet mr-back" onClick={back}>← end course</button><span>hole {at + 1} / {length}</span><strong>{standing > 0 ? '+' : ''}{standing}</strong></header>
-    <div className="card gp-card">
+    <div className="gp-card">
+      {complete && <div className="gp-toolbar"><Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} /></div>}
       <div className="kicker">par {hole.par}</div>
       <h2>{name(hole.from)} → {name(hole.to)}</h2>
       <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>
       <div className="gp-dogstats"><span><b>{status.hops}</b>hops</span><span><b>{Math.round(status.distance).toLocaleString()}</b>km</span><span><b>{mastered.size}</b>borders</span></div>
       {!complete && <><p className="gp-note">choose a country adjacent to {name(current)}.</p><div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} key={id}>{name(id)}</button>)}</div><button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button></>}
-      {complete && <div className="gp-feedback"><strong>{gave ? `conceded · scored as par +2` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`}</strong>{gave && <span>shortest route: {hole.parPath.map(name).join(' → ')}</span>}<button className="btn" type="button" onClick={next}>{at + 1 === length ? 'finish course' : 'next hole'}</button></div>}
+      {complete && <p className={`gp-caption ${gave ? 'wrong' : 'correct'}`}>{gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`}</p>}
     </div>
   </section>
 }
@@ -279,8 +300,14 @@ export default function Gameplay(props: Props) {
   const [index, setIndex] = useState<Countries | null>(null)
   const [error, setError] = useState('')
   useEffect(() => { let live = true; load().then(value => live && setIndex(value)).catch(value => live && setError(value instanceof Error ? value.message : 'country atlas could not be loaded.')); return () => { live = false } }, [])
-  if (error) return <section className="gp-shell"><div className="card gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>
-  if (!index) return <section className="gp-shell"><div className="card gp-card"><div className="kicker">loading atlas</div><h2>preparing your run</h2></div></section>
+  useEffect(() => {
+    const body = document.body
+    const previous = body.style.overflow
+    body.style.overflow = 'hidden'
+    return () => { body.style.overflow = previous }
+  }, [])
+  if (error) return <section className="gp-shell"><div className="gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>
+  if (!index) return <section className="gp-shell"><div className="gp-card"><div className="kicker">loading atlas</div><h2>preparing your run</h2></div></section>
   let scopeid = props.scope
   if (props.mode.group === 'daily') {
     try { scopeid = (JSON.parse(localStorage.getItem(stamp(props.mode, props.seed)) || '{}') as { scope?: string }).scope ?? scopeid } catch {}

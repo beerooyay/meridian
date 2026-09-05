@@ -201,7 +201,7 @@ export default function Shell() {
 
   return (
     <div className="mr-app">
-      <header className="mr-nav">
+      {phase !== 'ready' && <header className="mr-nav">
         <button className="mr-logo" type="button" onClick={() => setPhase('home')} aria-label="meridian home">
           <picture>
             <source media="(prefers-color-scheme: dark)" srcSet="/meridian/branding/logo-text-white.png" />
@@ -217,7 +217,7 @@ export default function Shell() {
         {user
           ? <div className="mr-user"><button className="btn ghost" type="button" onClick={() => setPhase('boards')}>{user.username ?? 'player'}</button><button className="btn quiet" type="button" onClick={signout}>sign out</button></div>
           : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
-      </header>
+      </header>}
 
       <main className="mr-view">
         {phase === 'home' && <>
@@ -268,7 +268,7 @@ export default function Shell() {
         {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} />}
       </main>
 
-      <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>
+      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
     </div>

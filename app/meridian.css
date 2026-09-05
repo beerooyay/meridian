@@ -14,6 +14,8 @@
   --ink: #14161a;
   --ink-2: #767b83;
   --on-ink: #faf9f7;
+  --good: #2f7d5d;
+  --bad: #b4433a;
   --r: 14px;
   --r-l: 22px;
   --ease: cubic-bezier(.2, .8, .25, 1);
@@ -35,6 +37,8 @@
     --ink: #f1efeb;
     --ink-2: #8e939b;
     --on-ink: #0e0f12;
+    --good: #4aa87c;
+    --bad: #d4655a;
   }
 }
 
@@ -190,34 +194,42 @@ button:disabled { cursor: default; }
 .scope-row span:last-child { color: var(--ink-2); font-weight: 500; }
 .scope-row.on span:last-child { color: var(--on-ink); opacity: .7; }
 
-.gp-shell { flex: 1; display: flex; flex-direction: column; padding: clamp(20px, 3vw, 36px) 0 clamp(40px, 6vw, 80px); }
-.gp-head { width: min(100%, 780px); margin: 0 auto 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; color: var(--ink-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.gp-shell { position: fixed; inset: 0; z-index: 5; background: var(--paper); overflow: hidden; display: flex; flex-direction: column; padding: clamp(16px, 3vw, 36px) var(--gutter) max(16px, env(safe-area-inset-bottom)); }
+.gp-head { width: min(100%, 820px); margin: 0 auto 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; color: var(--ink-2); font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
 .gp-head .mr-back { margin: 0; justify-self: start; }
 .gp-head strong { text-align: right; color: var(--ink); }
-.gp-card { width: min(100%, 780px); min-height: clamp(380px, 50vh, 560px); margin: 0 auto; padding: clamp(24px, 4vw, 52px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+.gp-card { position: relative; width: min(100%, 820px); flex: 1; min-height: 0; margin: 0 auto; padding: clamp(16px, 3vw, 40px) clamp(16px, 3vw, 40px) clamp(48px, 6vw, 72px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; overflow-y: auto; scrollbar-width: none; }
+.gp-card::-webkit-scrollbar { display: none; }
 .gp-card h2 { max-width: 600px; }
 .gp-card h1 small { font-size: var(--t2); color: var(--ink-2); font-weight: 500; letter-spacing: 0; }
-.gp-flag { width: min(300px, 75%); max-height: 190px; object-fit: contain; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); }
+.gp-flag { width: min(560px, 92%); max-height: 46vh; object-fit: contain; border-radius: 8px; }
 .gp-options { width: min(100%, 580px); display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-top: 6px; }
-.gp-options button { min-height: var(--h); padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); color: var(--ink); font-weight: 700; transition: border-color .14s var(--ease), background .14s var(--ease), transform .1s var(--ease), opacity .14s var(--ease); }
+.gp-options button { min-height: var(--h); padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); color: var(--ink); font-weight: 700; transition: border-color .14s var(--ease), background .14s var(--ease), color .14s var(--ease), transform .1s var(--ease), opacity .14s var(--ease); }
 .gp-options button:hover:not(:disabled) { border-color: var(--ink); }
 .gp-options button:active:not(:disabled) { transform: scale(.98); }
 .gp-options button:disabled { opacity: .45; }
-.gp-options button.yes { opacity: 1; background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
-.gp-options button.no { opacity: .6; text-decoration: line-through; }
+.gp-options button.yes { opacity: 1; background: var(--good); color: #fff; border-color: var(--good); }
+.gp-options button.no { opacity: 1; background: var(--bad); color: #fff; border-color: var(--bad); text-decoration: line-through; }
 .gp-form { width: min(100%, 520px); display: flex; gap: var(--gap); }
 .gp-form .field { flex: 1; }
-.gp-feedback { width: min(100%, 580px); display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 16px; margin-top: 10px; padding: 14px var(--pad); border-radius: var(--r); background: var(--surface-2); text-align: left; }
-.gp-feedback strong { grid-column: 1; }
-.gp-feedback span { grid-column: 1; color: var(--ink-2); }
-.gp-feedback .btn { grid-column: 2; grid-row: 1 / span 2; }
+.field.correct { border-color: var(--good); color: var(--good); }
+.field.wrong { border-color: var(--bad); color: var(--bad); }
+.gp-toolbar { width: 100%; display: flex; justify-content: flex-end; }
+.gp-next { border-radius: var(--r); }
+.gp-caption { color: var(--ink-2); max-width: 520px; }
+.gp-caption.correct { color: var(--good); }
+.gp-caption.wrong { color: var(--bad); }
 .gp-tiles { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .gp-word { min-height: 40px; font-size: var(--t2); font-weight: 700; letter-spacing: .1em; }
+.gp-word.correct { color: var(--good); }
+.gp-word.wrong { color: var(--bad); }
 .gp-letters { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
 .gp-letters .chip { min-width: calc(var(--h) * .8); padding: 0; text-transform: lowercase; }
 .gp-actions { display: flex; justify-content: center; gap: var(--gap); }
 .gp-dial { width: min(100%, 560px); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .gp-dial strong { font-size: var(--t1); letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.gp-dial strong.correct { color: var(--good); }
+.gp-dial strong.wrong { color: var(--bad); }
 .gp-dial input { width: 100%; accent-color: var(--ink); }
 .gp-scale { width: 100%; display: flex; justify-content: space-between; color: var(--ink-2); }
 .gp-result h1 { margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
@@ -251,8 +263,6 @@ button:disabled { cursor: default; }
   .mr-user .btn:first-child { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; display: block; line-height: var(--h); }
   .mr-foot span:nth-child(2) { display: none; }
   .gp-options { grid-template-columns: 1fr; }
-  .gp-feedback { grid-template-columns: 1fr; }
-  .gp-feedback .btn { grid-column: 1; grid-row: auto; margin-top: 8px; width: 100%; }
 }
 @media (max-width: 440px) {
   .mr-grid, .mr-dailygrid { grid-template-columns: 1fr; }

@@ -167,6 +167,17 @@ button:disabled { cursor: default; }
 .mr-holes legend { color: var(--ink-2); font-weight: 700; }
 .mr-holes div { display: flex; gap: 6px; }
 .mr-tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 12px 0; }
+.mr-boardpage { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; flex: 1; }
+.mr-select {
+  height: var(--h); padding: 0 36px 0 20px;
+  background: var(--surface-2); border: none; border-radius: var(--r);
+  color: var(--ink); font: inherit; font-size: var(--t3); font-weight: 500;
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2371747a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 10px;
+}
+.mr-select:hover { background: var(--surface-3); }
+.mr-boardcard { width: 100%; max-width: 680px; padding: clamp(20px, 4vw, 40px); }
 .mr-board { width: 100%; border-collapse: collapse; margin-top: 16px; text-align: left; }
 .mr-board th { padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--ink-2); font-weight: 700; }
 .mr-board td { padding: 12px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }

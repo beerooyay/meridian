@@ -142,18 +142,21 @@ function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; op
   return (
     <section className="mr-detail">
       <button className="btn quiet mr-back" type="button" onClick={back}>← all modes</button>
-      <div className="card mr-detailcard">
-        <div className="kicker">leaderboards</div>
+      <div className="mr-boardpage">
         <h1>boards</h1>
         <button className="btn ghost" type="button" onClick={openscope}>{scope.name} · {scope.count} countries</button>
         <div className="mr-tabs">{boards.map(tab => <button key={tab} className={`btn ${board === tab ? '' : 'ghost'}`} type="button" onClick={() => setBoard(tab)}>{tab}</button>)}</div>
-        <div className="mr-tabs">{options.map(item => <button key={item.id} className={`btn ${game === item.id ? '' : 'ghost'}`} type="button" onClick={() => setGame(item.id)}>{item.name}</button>)}</div>
-        {state === 'loading' && <p className="mr-empty">loading</p>}
-        {state === 'error' && <p className="mr-empty">board unavailable</p>}
-        {state === 'ready' && rows.length === 0 && <p className="mr-empty">no runs yet. be the first.</p>}
-        {state === 'ready' && rows.length > 0 && <table className="mr-board"><thead><tr><th>#</th><th>player</th><th>score</th><th>correct</th><th>time</th></tr></thead><tbody>
-          {rows.map((row, i) => <tr key={i}><td>{i + 1}</td><td>{String(row.username ?? '—')}</td><td>{Number(row.score ?? row.best ?? 0)}</td><td>{Number(row.correct ?? 0)}</td><td>{Number(row.elapsed ?? row.fastest ?? 0)}s</td></tr>)}
-        </tbody></table>}
+        <select className="mr-select" value={game} onChange={event => setGame(event.target.value)} aria-label="game mode">
+          {options.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+        <div className="card mr-boardcard">
+          {state === 'loading' && <p className="mr-empty">loading</p>}
+          {state === 'error' && <p className="mr-empty">board unavailable</p>}
+          {state === 'ready' && rows.length === 0 && <p className="mr-empty">no runs yet. be the first.</p>}
+          {state === 'ready' && rows.length > 0 && <table className="mr-board"><thead><tr><th>#</th><th>player</th><th>score</th><th>correct</th><th>time</th></tr></thead><tbody>
+            {rows.map((row, i) => <tr key={i}><td>{i + 1}</td><td>{String(row.username ?? '—')}</td><td>{Number(row.score ?? row.best ?? 0)}</td><td>{Number(row.correct ?? 0)}</td><td>{Number(row.elapsed ?? row.fastest ?? 0)}s</td></tr>)}
+          </tbody></table>}
+        </div>
       </div>
     </section>
   )

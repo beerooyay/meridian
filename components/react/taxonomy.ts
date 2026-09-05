@@ -15,8 +15,6 @@ const daily = [
   ['daily-choice', 'choice', 'forty-three flags. pick the right country from four options.', 'a shared set of forty-three flags with four answers each, same deck for everyone today. one attempt, scored on accuracy.', '43 questions'],
   ['daily-chance', 'chance', 'ten flags, no options. type the country name from memory.', 'today\'s ten flags in a shared order. type the country each flag belongs to. one attempt, scored on accuracy.', '1 attempt'],
   ['daily-dogleg', 'dogleg', 'travel between two countries by crossing land borders in the fewest hops. par is the true shortest path.', 'today\'s course runs the whole world. each hole gives you a start and a finish; move only through neighboring countries and try to match par. choose nine or eighteen holes.', 'golf scoring'],
-  ['daily-world-choice', 'world choice', 'ten multiple-choice questions on capitals, borders, languages, and flags.', 'a shared deck mixing capitals, borders, languages, and flags, each with four answers. one attempt per day.', '10 questions'],
-  ['daily-world-scramble', 'world scramble', 'ten mixed puzzles: letter tiles, population dials, capitals, and borders in one deck.', 'a shared medley across every question type. unscramble names, estimate populations, and connect capitals in one daily run.', '10 questions'],
 ] as const
 
 const ranked = [

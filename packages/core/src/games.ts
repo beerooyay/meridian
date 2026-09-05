@@ -97,9 +97,7 @@ function fact(items: Country[], rng: Rng, id: string, topic: 'capital' | 'langua
 
 const modes: Readonly<Record<string, readonly string[]>> = {
   'daily-choice': ['flag-choice'],
-  'daily-world-choice': ['flag-choice', 'capital', 'language', 'border'],
   'daily-chance': ['flag-text'],
-  'daily-world-scramble': ['flag-tiles', 'capital-tiles', 'population', 'border', 'language'],
   'ranked-choice': ['flag-choice'],
   'ranked-chance': ['flag-choice', 'flag-text', 'population', 'size', 'capital', 'language', 'border'],
   'ranked-flags-scramble': ['flag-tiles'],

@@ -5,6 +5,7 @@ import './meridian.css'
 export const metadata: Metadata = {
   title: 'meridian',
   description: 'a geography game about flags, countries, populations, and borders.',
+  manifest: '/meridian/manifest.webmanifest',
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },

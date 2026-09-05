@@ -5,7 +5,7 @@ import type { FormEvent } from 'react'
 import Gameplay from './gameplay'
 import { Back, Caret, Close, User as UserIcon } from './icons'
 import { core, modes, scrambles } from './taxonomy'
-import type { Mode } from './taxonomy'
+import type { Format, Mode } from './taxonomy'
 
 type Auth = 'login' | 'signup'
 type Phase = 'home' | 'detail' | 'ready' | 'boards'
@@ -26,6 +26,12 @@ const scopes: Scope[] = [
 
 const boards: Board[] = ['casual', 'ranked', 'daily']
 const boardopts = boards.map(id => ({ id, name: id }))
+const formats: { id: Format; name: string }[] = [
+  { id: 'best', name: 'best of 25' },
+  { id: 'minute', name: 'one minute' },
+  { id: 'cycle', name: 'the cycle' },
+]
+const rounds = [{ id: '9', name: '9 holes' }, { id: '18', name: '18 holes' }]
 const boardgames: Record<Board, { id: string; name: string }[]> = {
   casual: [
     { id: 'choice', name: 'choice' },
@@ -58,7 +64,7 @@ const Card = memo(function Card({ mode, open }: { mode: Mode; open: (mode: Mode)
   )
 })
 
-function Authbox({ kind, close, swap, onsuccess }: { kind: Auth; close: () => void; swap: () => void; onsuccess: () => void }) {
+function Authbox({ kind, close, swap, onsuccess }: { kind: Auth; close: () => void; swap: () => void; onsuccess: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
 
@@ -71,7 +77,7 @@ function Authbox({ kind, close, swap, onsuccess }: { kind: Auth; close: () => vo
       const response = await fetch(`/api/auth/${kind === 'login' ? 'signin' : 'signup'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await response.json().catch(() => null) as { error?: string; confirmed?: boolean } | null
       if (!response.ok) throw new Error(data?.error || 'we could not complete that request.')
-      if (kind === 'login') { onsuccess(); close(); return }
+      if (kind === 'login') { await onsuccess(); close(); return }
       setNotice(data?.confirmed ? 'your account is ready.' : 'check your email to confirm your account before logging in.')
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'we could not complete that request.')
@@ -264,16 +270,16 @@ function Profilebox({ user, close, signout, saved }: { user: User; close: () => 
   )
 }
 
-export default function Shell() {
+export default function Shell({ initial }: { initial: User | null }) {
   const [phase, setPhase] = useState<Phase>('home')
   const [mode, setMode] = useState<Mode | null>(null)
   const [scope, setScope] = useState(scopes[0])
   const [scopeopen, setScopeopen] = useState(false)
   const [auth, setAuth] = useState<Auth | null>(null)
   const [holes, setHoles] = useState<9 | 18>(9)
+  const [format, setFormat] = useState<Format>('best')
   const [seed, setSeed] = useState('')
-  const [user, setUser] = useState<User | null>(null)
-  const [checked, setChecked] = useState(false)
+  const [user, setUser] = useState<User | null>(initial)
   const [profile, setProfile] = useState(false)
 
   const day = new Date().toISOString().slice(0, 10)
@@ -282,10 +288,7 @@ export default function Shell() {
     const res = await fetch('/api/auth/session').catch(() => null)
     const data = res ? await res.json().catch(() => null) as { user?: User | null } | null : null
     setUser(data?.user ?? null)
-    setChecked(true)
   }, [])
-
-  useEffect(() => { void refresh() }, [refresh])
 
   async function signout() {
     try { await fetch('/api/auth/signout', { method: 'POST' }) } catch {}
@@ -309,6 +312,7 @@ export default function Shell() {
   const open = useCallback((next: Mode) => {
     setMode(next)
     setHoles(9)
+    setFormat('best')
     if (next.group === 'daily') {
       try {
         const saved = JSON.parse(localStorage.getItem(`meridian:daily:${day}:${next.id}`) || '') as { done?: boolean; holes?: 9 | 18 }
@@ -355,9 +359,9 @@ export default function Shell() {
           <button className="btn quiet" type="button" onClick={() => jump('casual')}>casual</button>
           <button className="btn quiet" type="button" onClick={() => setPhase('boards')}>boards</button>
         </nav>
-        {checked && (user
-          ? <button className="mr-avatar" type="button" onClick={() => setProfile(true)} aria-label="profile settings"><UserIcon /></button>
-          : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>)}
+        {user
+          ? <button className="btn ghost mr-avatar" type="button" onClick={() => setProfile(true)} aria-label="profile settings"><UserIcon /></button>
+          : <button className="btn ghost mr-login" type="button" onClick={() => setAuth('login')}>log in</button>}
       </header>}
 
       <main className="mr-view">
@@ -400,18 +404,24 @@ export default function Shell() {
             <div className="kicker">{mode.group}{mode.timed ? ' · timed' : ''}</div>
             <h1>{mode.name}</h1>
             <p>{mode.detail}</p>
-            <div className="mr-facts"><span><b>{chosen.name}</b> scope</span><span><b>{mode.metric}</b> format</span></div>
-            {mode.holes && <fieldset className="mr-holes"><legend>round length</legend><div>{mode.holes.map(count => <button className={`chip ${holes === count ? 'on' : ''}`} type="button" key={count} onClick={() => setHoles(count)}>{count} holes</button>)}</div></fieldset>}
+            {mode.group === 'casual' ? <div className="mr-combo mr-config">
+              <Pick value={scope.id} options={scopes} pick={id => setScope(scopes.find(item => item.id === id) ?? scopes[0])} placeholder="scope" />
+              <span className="mr-sep" />
+              {mode.id.endsWith('dogleg')
+                ? <Pick value={String(holes)} options={rounds} pick={id => setHoles(id === '18' ? 18 : 9)} placeholder="format" wide />
+                : <Pick value={format} options={formats} pick={id => setFormat(id as Format)} placeholder="format" wide />}
+            </div> : <div className="mr-facts"><span><b>{chosen.name}</b> scope</span><span><b>{mode.metric}</b> format</span></div>}
+            {mode.group !== 'casual' && mode.holes && <fieldset className="mr-holes"><legend>round length</legend><div>{mode.holes.map(count => <button className={`chip ${holes === count ? 'on' : ''}`} type="button" key={count} onClick={() => setHoles(count)}>{count} holes</button>)}</div></fieldset>}
             <button className="btn wide" type="button" onClick={start}>start {mode.name}</button>
           </div>
         </section>}
 
-        {phase === 'ready' && mode && <Gameplay mode={mode} scope={chosen.id} holes={holes} seed={seed} back={() => setPhase('home')} />}
+        {phase === 'ready' && mode && <Gameplay mode={mode} scope={chosen.id} holes={holes} format={format} seed={seed} back={() => setPhase('home')} />}
 
         {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} openscope={() => setScopeopen(true)} />}
       </main>
 
-      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{checked && !user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
+      {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
       {auth && <Authbox key={auth} kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
       {profile && user && <Profilebox user={user} close={() => setProfile(false)} signout={signout} saved={name => setUser({ ...user, username: name })} />}

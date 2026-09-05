@@ -54,8 +54,7 @@ const choices = (items: readonly Country[], target: Country, rng: Rng, label: (i
 const letters = (value: string, rng: Rng): string[] => shuffle([...value.toUpperCase()].filter(char => /[A-Z]/.test(char)), rng)
 const question = (id: string, kind: QuestionKind, topic: Topic, prompt: string, target: Country, answer: string, options: readonly string[] = [], extra: Partial<Question> = {}): Question => Object.freeze({ ...extra, id, kind, topic, prompt, target: target.id, answer, options: Object.freeze([...options]), letters: Object.freeze(extra.letters ? [...extra.letters] : []) })
 
-function flag(items: Country[], rng: Rng, id: string, kind: 'choice' | 'text' | 'tiles'): Question {
-  const target = pick(rng, items)
+function flag(items: Country[], rng: Rng, id: string, kind: 'choice' | 'text' | 'tiles', target = pick(rng, items)): Question {
   const options = kind === 'choice' ? choices(items, target, rng) : []
   return question(id, kind, 'flag', kind === 'tiles' ? 'Build the country shown by this flag' : 'Which country flies this flag?', target, target.name, options, { flag: target.id, letters: kind === 'tiles' ? letters(target.name, rng) : [] })
 }
@@ -122,11 +121,21 @@ export function deck(index: Countries, options: DeckOptions): readonly Question[
   const pattern = modes[options.mode]
   if (!pattern) throw new RangeError(`unknown question mode: ${options.mode}`)
   const rng = seeded(options.seed)
-  const count = options.count ?? (options.mode.startsWith('ranked-') ? 120 : options.mode === 'casual-world' ? 100 : options.mode === 'daily-choice' ? 43 : 10)
+  const count = options.count ?? (options.mode.startsWith('ranked-') ? 120 : options.mode === 'casual-world' ? 100 : options.mode.startsWith('daily-') ? 30 : 10)
+  let flags: Country[] = []
+  let last: Country | undefined
+  const nextflag = () => {
+    if (!flags.length) {
+      flags = shuffle(items, rng)
+      if (last && flags.length > 1 && flags[0]?.id === last.id) flags.push(flags.shift()!)
+    }
+    last = flags.shift()!
+    return last
+  }
   return Object.freeze(Array.from({ length: count }, (_, position) => {
     const type = pattern[position % pattern.length]!
     const id = `${options.mode}:${position}`
-    if (type.startsWith('flag-')) return flag(items, rng, id, type.slice(5) as 'choice' | 'text' | 'tiles')
+    if (type.startsWith('flag-')) return flag(items, rng, id, type.slice(5) as 'choice' | 'text' | 'tiles', nextflag())
     if (type === 'population' || type === 'size') return compare(items, rng, id, type)
     if (type === 'dial') return dial(items, rng, id)
     if (type === 'capital-tiles') return fact(items, rng, id, 'capital', true)

@@ -92,6 +92,23 @@ test('question decks are deterministic and validate shared payloads', () => {
   assert.equal(points(false, 0), 0)
 })
 
+test('daily flag decks contain thirty questions without repeats when the scope permits', () => {
+  const index = chain(40)
+  for (const mode of ['daily-choice', 'daily-chance']) {
+    const run = deck(index, { mode, seed: 'today' })
+    assert.equal(run.length, 30)
+    assert.equal(new Set(run.map(item => item.target)).size, 30)
+  }
+})
+
+test('flag decks exhaust the scope before repeating a country', () => {
+  const index = chain(8)
+  const run = deck(index, { mode: 'ranked-choice', seed: 'cycle', count: 17 })
+  assert.equal(new Set(run.slice(0, 8).map(item => item.target)).size, 8)
+  assert.equal(new Set(run.slice(8, 16).map(item => item.target)).size, 8)
+  assert.notEqual(run[7]!.target, run[8]!.target)
+})
+
 test('world survival deck mixes every question kind across a full hundred-question run', () => {
   const raw: CountryInput[] = chain(25).all.map((item, position) => ({
     ...item,

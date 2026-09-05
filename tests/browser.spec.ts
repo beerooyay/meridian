@@ -14,6 +14,30 @@ test('signup explains required email confirmation without contacting auth', asyn
   await expect(dialog.getByRole('status')).toContainText('check your email')
 })
 
+test('casual setup exposes scope and run format controls', async ({ page }) => {
+  await page.goto(base)
+  await page.locator('#casual .mr-card').first().click()
+  await expect(page.locator('.mr-config')).toBeVisible()
+  await expect(page.locator('.mr-config .mr-pickbtn').first()).toContainText('world')
+  await expect(page.locator('.mr-config .mr-pickbtn').last()).toContainText('best of 25')
+  await page.locator('.mr-config .mr-pickbtn').last().click()
+  await page.getByRole('option', { name: 'the cycle' }).click()
+  await expect(page.locator('.mr-config .mr-pickbtn').last()).toContainText('the cycle')
+})
+
+test('casual results use the shared measured stat grid', async ({ page }) => {
+  await page.goto(base)
+  await page.locator('#casual .mr-card').first().click()
+  await page.getByRole('button', { name: 'start choice', exact: true }).click()
+  for (let at = 0; at < 25; at++) {
+    await page.locator('.gp-options button').first().click()
+    await page.locator('.gp-toolbar .btn').click()
+  }
+  await expect(page.locator('.gp-stats > div')).toHaveCount(4)
+  await expect(page.locator('.gp-stats')).toContainText('accuracy')
+  await expect(page.locator('.gp-stats')).toContainText('questions')
+})
+
 test('design system: three type sizes, two inks, one button height', async ({ page }) => {
   await page.goto(base)
   const sizes = await page.evaluate(() => {

@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { deck, dogleg, graph, play, scope as getscope, scopes as getscopes, source, validate, type Countries, type DoglegCourse, type MeridianSource, type PublicQuestion, type Reveal, type Scope } from '@meridian/core'
+import { Back } from './icons'
 import type { Mode } from './taxonomy'
 
 type Props = { mode: Mode; scope: string; holes: 9 | 18; seed: string; back: () => void }
@@ -64,7 +65,7 @@ function Next({ label, onClick }: { label: string; onClick: () => void }) {
 
 function Head({ back, label, score, meter }: { back: () => void; label: string; score: ReactNode; meter: ReactNode }) {
   return <header className="gp-head">
-    <button className="btn quiet mr-back" type="button" onClick={back}>← {label}</button>
+    <button className="btn quiet mr-back" type="button" onClick={back}><Back />{label}</button>
     <strong className="gp-score">score: {score}</strong>
     <span className="gp-meter">{meter}</span>
   </header>
@@ -130,15 +131,18 @@ const Clock = memo(function Clock({ expires, expire }: { expires: string; expire
   const [left, setLeft] = useState(() => Math.max(0, (new Date(expires).valueOf() - Date.now()) / 1000))
   const fired = useRef(false)
   useEffect(() => {
+    fired.current = false
     const end = new Date(expires).valueOf()
+    const next = Math.max(0, (end - Date.now()) / 1000)
+    setLeft(next)
     let frame = 0
     const tick = () => {
-      const next = Math.max(0, (end - Date.now()) / 1000)
-      setLeft(next)
-      if (next <= 0) { if (!fired.current) { fired.current = true; expire() } return }
+      const remaining = Math.max(0, (end - Date.now()) / 1000)
+      setLeft(remaining)
+      if (remaining <= 0) { if (!fired.current) { fired.current = true; expire() } return }
       frame = window.setTimeout(tick, 100)
     }
-    tick()
+    frame = window.setTimeout(tick, 100)
     return () => window.clearTimeout(frame)
   }, [expires, expire])
   return <span aria-live="off">{left.toFixed(1)}s</span>

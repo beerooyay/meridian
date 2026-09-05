@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import Gameplay from './gameplay'
+import { Back, Caret, Close } from './icons'
 import { core, modes, scrambles } from './taxonomy'
 import type { Mode } from './taxonomy'
 
@@ -10,6 +11,7 @@ type Auth = 'login' | 'signup'
 type Phase = 'home' | 'detail' | 'ready' | 'boards'
 type Scope = { id: string; name: string; count: number }
 type User = { id: string; username: string | null }
+const num = (value: unknown) => { const v = Number(value); return Number.isFinite(v) ? v : 0 }
 type Board = 'casual' | 'ranked' | 'daily'
 type Row = Record<string, unknown>
 
@@ -46,15 +48,15 @@ const boardgames: Record<Board, { id: string; name: string }[]> = {
   ],
 }
 
-function Card({ mode, open }: { mode: Mode; open: (mode: Mode) => void }) {
+const Card = memo(function Card({ mode, open }: { mode: Mode; open: (mode: Mode) => void }) {
   return (
     <button className="mr-card" type="button" onClick={() => open(mode)}>
-      <h2>{mode.name}</h2>
-      <p>{mode.summary}</p>
+      <span className="mr-cardname">{mode.name}</span>
+      <span className="mr-cardsummary">{mode.summary}</span>
       <span className="mr-metric">{mode.metric}</span>
     </button>
   )
-}
+})
 
 function Authbox({ kind, close, swap, onsuccess }: { kind: Auth; close: () => void; swap: () => void; onsuccess: () => void }) {
   const [busy, setBusy] = useState(false)
@@ -81,7 +83,7 @@ function Authbox({ kind, close, swap, onsuccess }: { kind: Auth; close: () => vo
   return (
     <div className="mr-layer" role="presentation" onPointerDown={(event) => event.target === event.currentTarget && close()}>
       <section className="card mr-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-        <button className="btn quiet mr-close" type="button" aria-label="close" onClick={close}>×</button>
+        <button className="btn quiet mr-close" type="button" aria-label="close" onClick={close}><Close /></button>
         <div className="kicker">meridian account</div>
         <h2 id="auth-title">{kind === 'login' ? 'welcome back' : 'join meridian'}</h2>
         <p>{kind === 'login' ? 'sign in to keep your runs and rankings together.' : 'create a profile to save progress across the map.'}</p>
@@ -128,7 +130,7 @@ function Pick({ value, options, pick, placeholder, wide }: { value: string | nul
   const label = options.find(item => item.id === value)?.name ?? value ?? placeholder
   return <div className={`mr-pick ${wide ? 'wide' : ''}`} ref={ref}>
     <button className="mr-pickbtn" type="button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(open => !open)}>
-      <span className="mr-picklabel">{label}</span><span className="mr-caret">⌄</span>
+      <span className="mr-picklabel">{label}</span><span className="mr-caret"><Caret /></span>
     </button>
     {open && <div className="mr-menu" role="listbox">
       {options.map(item => <button key={item.id} className={item.id === value ? 'on' : ''} type="button" role="option" aria-selected={item.id === value} onClick={() => { pick(item.id); setOpen(false) }}>{item.name}</button>)}
@@ -156,19 +158,20 @@ function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; op
     if (board === 'ranked') { params.set('scope', scope.id); params.set('season', 'current') }
     if (board === 'daily') params.set('day', new Date().toISOString().slice(0, 10))
     fetch(`/api/leaderboard?${params}`)
-      .then(async response => { const data = await response.json().catch(() => null) as { rows?: Row[] } | null; if (!live) return; if (!response.ok || !data?.rows) { setRows([]); setState('error') } else { setRows(data.rows); setState('ready') } })
+      .then(async response => { const data = await response.json().catch(() => null) as { rows?: unknown } | null; if (!live) return; if (!response.ok || !data || !Array.isArray(data.rows)) { setRows([]); setState('error') } else { setRows(data.rows as Row[]); setState('ready') } })
       .catch(() => live && setState('error'))
     return () => { live = false }
   }, [board, game, scope.id])
 
+  const pickboard = useCallback((id: string) => setBoard(id as Board), [])
   return (
     <section className="mr-detail">
-      <button className="btn quiet mr-back" type="button" onClick={back}>← all modes</button>
+      <button className="btn quiet mr-back" type="button" onClick={back}><Back />all modes</button>
       <div className="mr-boardpage">
         <h1>boards</h1>
         <button className="btn ghost" type="button" onClick={openscope}>{scope.name} · {scope.count} countries</button>
         <div className="mr-combo">
-          <Pick value={board} options={boardopts} pick={id => setBoard(id as Board)} placeholder="board" />
+          <Pick value={board} options={boardopts} pick={pickboard} placeholder="board" />
           <span className="mr-sep" />
           <Pick value={game} options={options} pick={setGame} placeholder="mode" wide />
         </div>
@@ -177,13 +180,16 @@ function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; op
           {state === 'error' && <p className="mr-empty">board unavailable</p>}
           {state === 'ready' && rows.length === 0 && <p className="mr-empty">no runs yet. be the first.</p>}
           {state === 'ready' && rows.length > 0 && <table className="mr-board"><thead><tr><th>#</th><th>player</th><th>score</th><th>correct</th><th>time</th></tr></thead><tbody>
-            {rows.map((row, i) => <tr key={i}><td>{i + 1}</td><td>{String(row.username ?? '—')}</td><td>{Number(row.score ?? row.best ?? 0)}</td><td>{Number(row.correct ?? 0)}</td><td>{Number(row.elapsed ?? row.fastest ?? 0)}s</td></tr>)}
+            {rows.map((row, i) => <tr key={i}><td>{i + 1}</td><td>{String(row.username ?? '—')}</td><td>{num(row.score ?? row.best)}</td><td>{num(row.correct)}</td><td>{num(row.elapsed ?? row.fastest)}s</td></tr>)}
           </tbody></table>}
         </div>}
       </div>
     </section>
   )
 }
+
+const casualcore = core('casual')
+const casualscrambles = scrambles('casual')
 
 export default function Shell() {
   const [phase, setPhase] = useState<Phase>('home')
@@ -206,7 +212,7 @@ export default function Shell() {
   useEffect(() => { void refresh() }, [refresh])
 
   async function signout() {
-    await fetch('/api/auth/signout', { method: 'POST' })
+    try { await fetch('/api/auth/signout', { method: 'POST' }) } catch {}
     setUser(null)
     setPhase('home')
   }
@@ -222,7 +228,7 @@ export default function Shell() {
     return () => window.removeEventListener('keydown', escape)
   }, [auth, phase, scopeopen])
 
-  function open(next: Mode) {
+  const open = useCallback((next: Mode) => {
     setMode(next)
     setHoles(9)
     if (next.group === 'daily') {
@@ -238,7 +244,7 @@ export default function Shell() {
     }
     setPhase('detail')
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  }, [day])
 
   function jump(id: string) {
     setPhase('home')
@@ -254,7 +260,7 @@ export default function Shell() {
       const key = `meridian:daily:${day}:${mode.id}`
       if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ at: 0, right: 0, wrong: 0, done: false, holes, scope: chosen.id }))
     }
-    setSeed(mode.group === 'casual' ? crypto.randomUUID() : day)
+    setSeed(mode.group === 'casual' ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`) : day)
     setPhase('ready')
   }
 
@@ -290,7 +296,7 @@ export default function Shell() {
               <span className="scope-label">playing</span>
               <span className="scope-value">{scope.name}</span>
               <span className="scope-count">{scope.count} countries</span>
-              <span className="scope-caret">⌄</span>
+              <span className="scope-caret"><Caret /></span>
             </button>
           </section>
 
@@ -306,19 +312,19 @@ export default function Shell() {
 
           <section className="mr-section" id="casual">
             <header className="mr-head"><h2>casual</h2><p>no clock, no board. explore the atlas at your pace.</p></header>
-            <div className="mr-grid">{core('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <div className="mr-grid">{casualcore.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
             <h3 className="mr-subhead">scrambles</h3>
-            <div className="mr-grid">{scrambles('casual').map(item => <Card mode={item} open={open} key={item.id} />)}</div>
+            <div className="mr-grid">{casualscrambles.map(item => <Card mode={item} open={open} key={item.id} />)}</div>
           </section>
         </>}
 
         {phase === 'detail' && mode && <section className="mr-detail">
-          <button className="btn quiet mr-back" type="button" onClick={() => setPhase('home')}>← all modes</button>
+          <button className="btn quiet mr-back" type="button" onClick={() => setPhase('home')}><Back />all modes</button>
           <div className="card mr-detailcard">
             <div className="kicker">{mode.group}{mode.timed ? ' · timed' : ''}</div>
             <h1>{mode.name}</h1>
             <p>{mode.detail}</p>
-            <div className="mr-facts"><span><b>{chosen.name}</b>scope</span><span><b>{mode.metric}</b>format</span></div>
+            <div className="mr-facts"><span><b>{chosen.name}</b> scope</span><span><b>{mode.metric}</b> format</span></div>
             {mode.holes && <fieldset className="mr-holes"><legend>round length</legend><div>{mode.holes.map(count => <button className={`chip ${holes === count ? 'on' : ''}`} type="button" key={count} onClick={() => setHoles(count)}>{count} holes</button>)}</div></fieldset>}
             <button className="btn wide" type="button" onClick={start}>start {mode.name}</button>
           </div>
@@ -331,7 +337,7 @@ export default function Shell() {
 
       {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}
       {scopeopen && <Scopebox current={scope} choose={next => { setScope(next); setScopeopen(false) }} close={() => setScopeopen(false)} />}
-      {auth && <Authbox kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
+      {auth && <Authbox key={auth} kind={auth} close={() => setAuth(null)} swap={() => setAuth(auth === 'login' ? 'signup' : 'login')} onsuccess={refresh} />}
     </div>
   )
 }

@@ -1,0 +1,22 @@
+# environment
+.env*.local
+
+# build artifacts
+node_modules
+.next/
+tsconfig.tsbuildinfo
+test-results/
+playwright-report/
+
+# platform
+.vercel/
+.snowflake/
+.v0-trash/
+
+# v0 sandbox leftovers
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+
+# os
+.DS_Store

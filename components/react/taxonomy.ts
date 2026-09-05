@@ -52,5 +52,3 @@ export const modes: Record<Group, Mode[]> = {
 
 export const scrambles = (group: Group) => modes[group].filter((mode) => mode.id.endsWith('-scramble'))
 export const core = (group: Group) => modes[group].filter((mode) => !mode.id.endsWith('-scramble'))
-
-export const all = Object.values(modes).flat()

@@ -13,9 +13,11 @@ export async function POST(request: Request) {
   if (!found.user || !found.index) return fail(401, 'login required')
   const blocked = await rate(request, [{ bucket: 'ranked-answer', value: found.user.id, count: 150, seconds: 120 }])
   if (blocked) return blocked
-  const run = await found.db.from('runs').select('id,uid,game,mode,qcount,config').eq('id', body.run).eq('uid', found.user.id).eq('mode', 'ranked').maybeSingle()
+  const run = await found.db.from('runs').select('id,uid,game,mode,qcount,state,expires,config').eq('id', body.run).eq('uid', found.user.id).eq('mode', 'ranked').maybeSingle()
   if (run.error) return fail(500, 'ranked run unavailable')
   if (!run.data) return fail(404, 'ranked run not found')
+  if (run.data.state !== 'active') return fail(409, 'ranked run is not active')
+  if (new Date(run.data.expires).valueOf() <= Date.now()) return fail(409, 'ranked run expired')
   const raw = run.data.config as { deck?: unknown[] }
   if (!Array.isArray(raw.deck) || raw.deck.length !== run.data.qcount) return fail(500, 'ranked run is invalid')
   if (q < 1 || q > raw.deck.length) return fail(409, 'question out of sequence')

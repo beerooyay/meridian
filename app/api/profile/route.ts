@@ -28,12 +28,12 @@ export async function GET(request: Request) {
   const totalsrow = totals.data ?? zero
   const rows = (stats.data ?? []).map(row => ({
     ...row,
-    average: row.runs ? Number((row.score / row.runs).toFixed(2)) : 0,
+    average: Number(row.runs) ? Number((Number(row.score) / Number(row.runs)).toFixed(2)) : 0,
   }))
   return NextResponse.json({
     profile: { id: gate.user.id, username: profile.data?.username ?? null, created: profile.data?.created ?? null, updated: profile.data?.updated ?? null },
     casual: {
-      total: { ...casualrow, average: casualrow.runs ? Number((casualrow.score / casualrow.runs).toFixed(2)) : 0 },
+      total: { ...casualrow, average: Number(casualrow.runs) ? Number((Number(casualrow.score) / Number(casualrow.runs)).toFixed(2)) : 0 },
       rows,
     },
     total: totalsrow,

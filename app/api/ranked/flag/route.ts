@@ -1,7 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { fail, off, rate } from '@/lib/api'
-import { cleansvg, context, identifier, question } from '@/lib/ranked'
+import { context, identifier, loadflagraw, question } from '@/lib/ranked'
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
@@ -25,11 +23,7 @@ export async function GET(request: Request) {
   if (!Array.isArray(config.deck) || config.deck.length !== runrow.data.qcount || !config.deck.every(question)) return fail(500, 'ranked flag unavailable')
   const item = config.deck[q - 1]
   if (!item?.flag || !/^[a-z]{2}$/i.test(item.flag)) return fail(404, 'ranked flag unavailable')
-  try {
-    const id = item.flag.toLowerCase()
-    const svg = await readFile(join(process.cwd(), 'public/meridian/flags', `${id}.svg`), 'utf8')
-    return new Response(cleansvg(svg, id), { headers: { 'Cache-Control': 'private, no-store', 'Content-Type': 'image/svg+xml', Vary: 'Cookie' } })
-  } catch {
-    return fail(404, 'ranked flag unavailable')
-  }
+  const svg = await loadflagraw(item.flag)
+  if (!svg) return fail(404, 'ranked flag unavailable')
+  return new Response(svg, { headers: { 'Cache-Control': 'private, no-store', 'Content-Type': 'image/svg+xml', Vary: 'Cookie' } })
 }

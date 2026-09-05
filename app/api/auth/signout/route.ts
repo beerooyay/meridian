@@ -6,6 +6,6 @@ export async function POST() {
   const client = await server()
   if (!client) return off()
   const { error } = await client.auth.signOut()
-  if (error) return fail(500, "signout failed")
+  if (error && error.name !== "AuthSessionMissingError") return fail(500, "signout failed")
   return NextResponse.json({ ok: true })
 }

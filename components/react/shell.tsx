@@ -349,8 +349,8 @@ export default function Shell({ initial }: { initial: User | null }) {
     <div className="mr-app">
       {phase !== 'ready' && <header className="mr-nav">
         <button className="mr-logo" type="button" onClick={() => setPhase('home')} aria-label="meridian home">
-          <img className="logo-light" src="/meridian/branding/logo-text-black.png" alt="meridian" width="210" height="48" />
-          <img className="logo-dark" src="/meridian/branding/logo-text-white.png" alt="" width="210" height="48" aria-hidden="true" />
+          <img className="swap-light" src="/meridian/branding/logo-text-black.png" alt="meridian" width="210" height="48" />
+          <img className="swap-dark" src="/meridian/branding/logo-text-white.png" alt="" width="210" height="48" aria-hidden="true" />
         </button>
         <nav aria-label="primary">
           <button className="btn quiet" type="button" onClick={() => jump('daily')}>daily</button>
@@ -372,8 +372,8 @@ export default function Shell({ initial }: { initial: User | null }) {
               <p>build real map intuition and knowledge through daily puzzles, ranked, daily, & casual game modes, and addictive learning.</p>
             </div>
             <div className="mr-heromark">
-              <img className="mark-light" src="/meridian/branding/meridian-black.png" alt="" width="1080" height="1080" aria-hidden="true" />
-              <img className="mark-dark" src="/meridian/branding/meridian-white.png" alt="" width="1080" height="1080" aria-hidden="true" />
+              <img className="swap-light" src="/meridian/branding/meridian-black.png" alt="" width="1080" height="1080" decoding="async" aria-hidden="true" />
+              <img className="swap-dark" src="/meridian/branding/meridian-white.png" alt="" width="1080" height="1080" decoding="async" aria-hidden="true" />
             </div>
           </section>
 

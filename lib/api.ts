@@ -58,7 +58,7 @@ export type Rule = {
   seconds: number
 }
 
-export const ip = (request: Request) => request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "unknown"
+export const ip = (request: Request) => request.headers.get("x-real-ip")?.trim() || request.headers.get("x-forwarded-for")?.split(",").pop()?.trim() || "unknown"
 
 export async function rate(request: Request, rules: Rule[]) {
   const env = secretenv()

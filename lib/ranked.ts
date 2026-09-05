@@ -36,6 +36,18 @@ export const payload = (item: Question, run: string, q: number, flagdata?: strin
   sanitize(item, flagdata || (item.flag ? `/api/ranked/flag?run=${encodeURIComponent(run)}&q=${q}` : undefined))
 
 const flags = new Map<string, string | undefined>()
+const raws = new Map<string, string | undefined>()
+export async function loadflagraw(id: string): Promise<string | undefined> {
+  const lower = id.toLowerCase()
+  if (raws.has(lower)) return raws.get(lower)
+  if (!/^[a-z]{2}$/.test(lower)) return undefined
+  try {
+    const svg = await readFile(join(process.cwd(), 'public/meridian/flags', `${lower}.svg`), 'utf8')
+    const data = cleansvg(svg, lower)
+    raws.set(lower, data)
+    return data
+  } catch { raws.set(lower, undefined); return undefined }
+}
 export async function loadflag(id: string): Promise<string | undefined> {
   const lower = id.toLowerCase()
   if (flags.has(lower)) return flags.get(lower)

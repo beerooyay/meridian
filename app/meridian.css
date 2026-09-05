@@ -151,7 +151,7 @@ button:disabled { cursor: default; }
 .mr-hero { min-height: clamp(360px, 40vw, 480px); display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .6fr); align-items: center; gap: clamp(32px, 6vw, 80px); border-bottom: 1px solid var(--line); padding: var(--pad) 0; }
 .mr-hero h1 { margin: 14px 0 20px; max-width: 12ch; text-wrap: balance; }
 .mr-hero p { max-width: 620px; }
-.mr-heromark { width: clamp(140px, 18vw, 260px); justify-self: center; animation: hovermark 8s infinite; }
+.mr-heromark { width: clamp(140px, 18vw, 260px); justify-self: center; animation: hovermark 6.4s infinite; }
 .mr-heromark img { display: block; width: 100%; height: auto; }
 .mr-heromark .mark-dark { display: none; }
 [data-theme="dark"] .mr-heromark .mark-light { display: none; }
@@ -161,10 +161,11 @@ button:disabled { cursor: default; }
   :root:not([data-theme="light"]) .mr-heromark .mark-dark { display: block; }
 }
 @keyframes hovermark {
-  0%, 20%, 100% { transform: translateY(-2px); animation-timing-function: cubic-bezier(.4, 0, 1, 1); }
-  68% { transform: translateY(5px); animation-timing-function: cubic-bezier(0, 0, .2, 1); }
-  80% { transform: translateY(-2px); }
-  89% { transform: translateY(1px); }
+  0% { transform: translateY(-5px); animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  55% { transform: translateY(7px); animation-timing-function: cubic-bezier(0, 0, .2, 1); }
+  70% { transform: translateY(-3px); animation-timing-function: ease-in-out; }
+  82% { transform: translateY(1px); animation-timing-function: ease-in-out; }
+  100% { transform: translateY(-5px); }
 }
 
 .mr-section { padding: clamp(48px, 7vw, 88px) 0; scroll-margin-top: 20px; border-bottom: 1px solid var(--line); }

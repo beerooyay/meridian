@@ -333,8 +333,7 @@ export default function Shell({ initial }: { initial: User | null }) {
     requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  const world = mode?.id === 'daily-dogleg'
-  const chosen = world ? scopes[0] : scope
+  const chosen = mode?.group === 'casual' ? scope : scopes[0]
 
   function start() {
     if (!mode) return
@@ -368,16 +367,14 @@ export default function Shell({ initial }: { initial: User | null }) {
         {phase === 'home' && <>
           <section className="mr-hero">
             <div>
-              <div className="kicker">know the world properly</div>
-              <h1>geography that goes beyond the outline.</h1>
-              <p>build real map intuition through daily puzzles, ranked sprints, and unhurried practice.</p>
+              <div className="kicker">know the world properly and put it to the test</div>
+              <h1>world geography memory games.</h1>
+              <p>build real map intuition and knowledge through daily puzzles, ranked, daily, & casual game modes, and addictive learning.</p>
             </div>
-            <button className="scope-btn" type="button" onClick={() => setScopeopen(true)}>
-              <span className="scope-label">playing</span>
-              <span className="scope-value">{scope.name}</span>
-              <span className="scope-count">{scope.count} countries</span>
-              <span className="scope-caret"><Caret /></span>
-            </button>
+            <div className="mr-heromark">
+              <img className="mark-light" src="/meridian/branding/meridian-black.png" alt="" width="1080" height="1080" aria-hidden="true" />
+              <img className="mark-dark" src="/meridian/branding/meridian-white.png" alt="" width="1080" height="1080" aria-hidden="true" />
+            </div>
           </section>
 
           <section className="mr-section" id="daily">

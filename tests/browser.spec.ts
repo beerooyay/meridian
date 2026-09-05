@@ -25,6 +25,16 @@ test('casual setup exposes scope and run format controls', async ({ page }) => {
   await expect(page.locator('.mr-config .mr-pickbtn').last()).toContainText('the cycle')
 })
 
+test('daily remains world after changing the casual scope', async ({ page }) => {
+  await page.goto(base)
+  await page.locator('#casual .mr-card').first().click()
+  await page.locator('.mr-config .mr-pickbtn').first().click()
+  await page.getByRole('option', { name: 'africa' }).click()
+  await page.getByRole('button', { name: 'all modes' }).click()
+  await page.locator('#daily .mr-card').first().click()
+  await expect(page.locator('.mr-facts')).toContainText('world')
+})
+
 test('casual results use the shared measured stat grid', async ({ page }) => {
   await page.goto(base)
   await page.locator('#casual .mr-card').first().click()
@@ -66,6 +76,11 @@ for (const width of [390, 820, 1440]) {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
     await page.goto(base)
     await expect(page.locator('.mr-nav')).toHaveCSS('display', 'grid')
+    await expect(page.getByRole('heading', { name: 'world geography memory games.' })).toBeVisible()
+    const mark = page.locator('.mr-heromark img:visible')
+    await expect(mark).toBeVisible()
+    await expect.poll(() => mark.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
+    await expect(page.locator('.scope-btn')).toHaveCount(0)
     await expect(page.locator('.mr-grid').first()).toHaveCSS('display', 'grid')
     await expect(page.locator('.mr-card').first()).toHaveCSS('display', 'flex')
     await expect(page.locator('.mr-card svg')).toHaveCount(0)

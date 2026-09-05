@@ -342,11 +342,7 @@ export default function Gameplay(props: Props) {
     body.style.overflow = 'hidden'
     return () => { body.style.overflow = previous }
   }, [])
-  const scopeid = useMemo(() => {
-    if (props.mode.group !== 'daily') return props.scope
-    try { return (JSON.parse(localStorage.getItem(stamp(props.mode, props.seed)) || '{}') as { scope?: string }).scope ?? props.scope } catch { return props.scope }
-  }, [props.mode, props.seed, props.scope])
-  const selected = useMemo(() => index ? (getscopes(index).find(item => item.id === scopeid) ?? getscope(index)) : null, [index, scopeid])
+  const selected = useMemo(() => index ? (getscopes(index).find(item => item.id === props.scope) ?? getscope(index)) : null, [index, props.scope])
   if (error) return <section className="gp-shell"><div className="gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>
   if (!index || !selected) return <section className="gp-shell"><div className="gp-card"><div className="kicker">loading atlas</div><h2>preparing your run</h2></div></section>
   if (props.mode.group === 'ranked') return <Ranked mode={props.mode} scope={selected} back={props.back} />

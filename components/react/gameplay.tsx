@@ -11,6 +11,7 @@ type Stats = { runs: number; right: number; total: number; average: number }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
 const flag = (value: string) => value.startsWith('/') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
+const warm = (value?: string) => { if (value) { const img = new Image(); img.src = flag(value) } }
 const format = (value: number) => new Intl.NumberFormat('en', { notation: value >= 1e6 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value)
 const post = (url: string, body: unknown) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
@@ -83,6 +84,9 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
   useEffect(() => {
     if (mode.group === 'daily') localStorage.setItem(key, JSON.stringify({ at, right, wrong, done, scope: scope.id }))
   }, [at, right, wrong, done, key, mode.group, scope.id])
+  useEffect(() => {
+    for (let i = at + 1; i < Math.min(at + 4, questions.length); i++) warm(questions[i]?.flag)
+  }, [at, questions])
   useEffect(() => {
     if (!done || mode.group !== 'casual' || recorded.current) return
     recorded.current = true
@@ -203,6 +207,8 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     const query = new URLSearchParams({ board: 'ranked', game: mode.id, scope: scope.id, season: issued.season, limit: '5' })
     fetch(`/api/leaderboard?${query}`).then(response => response.ok ? response.json() : null).then((data: { rows?: Row[] } | null) => alive.current && setRows(data?.rows ?? [])).catch(() => {})
   }, [issued, mode.id, result, scope.id])
+
+  useEffect(() => { warm(feedback?.next?.question?.flag) }, [feedback])
 
   async function answer(value: string | number) {
     if (!issued || !item || feedback || busy || result) return

@@ -135,13 +135,6 @@ button:disabled { cursor: default; }
 .mr-nav { height: clamp(72px, 6vw, 96px); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--gap); border-bottom: 1px solid var(--line); position: relative; z-index: 3; }
 .mr-logo { width: clamp(150px, 8vw + 100px, 210px); padding: 0; border: 0; background: none; line-height: 0; justify-self: start; }
 .mr-logo img { width: 100%; height: auto; display: block; }
-.swap-dark { display: none; }
-[data-theme="dark"] .swap-light { display: none; }
-[data-theme="dark"] .swap-dark { display: block; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .swap-light { display: none; }
-  :root:not([data-theme="light"]) .swap-dark { display: block; }
-}
 .mr-nav nav { display: flex; gap: 4px; }
 .btn.mr-avatar { justify-self: end; width: var(--h); padding: 0; border-radius: 50%; }
 .btn.mr-avatar:active { transform: scale(.96); }
@@ -152,6 +145,13 @@ button:disabled { cursor: default; }
 .mr-hero p { max-width: 620px; }
 .mr-heromark { width: clamp(140px, 18vw, 260px); justify-self: center; animation: hovermark 7s infinite; }
 .mr-heromark img { display: block; width: 100%; height: auto; }
+img.swap-dark { display: none; }
+[data-theme="dark"] img.swap-light { display: none; }
+[data-theme="dark"] img.swap-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) img.swap-light { display: none; }
+  :root:not([data-theme="light"]) img.swap-dark { display: block; }
+}
 
 @keyframes hovermark {
   0% { transform: translate(0, -6px) rotate(-.7deg); animation-timing-function: ease-in-out; }

@@ -309,6 +309,21 @@ export default function Shell({ initial }: { initial: User | null }) {
     return () => window.removeEventListener('keydown', escape)
   }, [auth, phase, profile, scopeopen])
 
+  useEffect(() => {
+    const root = document.documentElement
+    const vv = window.visualViewport
+    const set = () => root.style.setProperty('--app-vh', `${(vv?.height ?? window.innerHeight)}px`)
+    set()
+    vv?.addEventListener('resize', set)
+    vv?.addEventListener('scroll', set)
+    window.addEventListener('orientationchange', set)
+    return () => {
+      vv?.removeEventListener('resize', set)
+      vv?.removeEventListener('scroll', set)
+      window.removeEventListener('orientationchange', set)
+    }
+  }, [])
+
   const open = useCallback((next: Mode) => {
     setMode(next)
     setHoles(9)

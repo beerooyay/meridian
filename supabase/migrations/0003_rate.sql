@@ -4,7 +4,7 @@ create table if not exists public.ratelimit (
   bucket text not null,
   key text not null,
   hits integer not null default 0,
-  window bigint not null,
+  expires bigint not null,
   primary key (bucket, key)
 );
 
@@ -19,19 +19,19 @@ create or replace function public.ratelimit(
 language plpgsql security definer set search_path = '' as $$
 declare
   now_epoch bigint := extract(epoch from now())::bigint;
-  row_window bigint;
+  row_expires bigint;
   row_hits integer;
 begin
-  select window, hits into row_window, row_hits
+  select expires, hits into row_expires, row_hits
   from public.ratelimit
   where bucket = p_bucket and key = p_key
   for update;
 
-  if row_window is null or now_epoch >= row_window then
-    insert into public.ratelimit (bucket, key, hits, window)
+  if row_expires is null or now_epoch >= row_expires then
+    insert into public.ratelimit (bucket, key, hits, expires)
     values (p_bucket, p_key, 1, now_epoch + p_seconds)
     on conflict (bucket, key) do update
-      set hits = 1, window = now_epoch + p_seconds;
+      set hits = 1, expires = now_epoch + p_seconds;
     return true;
   end if;
 

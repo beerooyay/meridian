@@ -23,12 +23,27 @@ const scopes: Scope[] = [
 ]
 
 const boards: Board[] = ['casual', 'ranked', 'daily']
-const games = [
-  { id: 'choice', name: 'choice' },
-  { id: 'chance', name: 'chance' },
-  { id: 'flags-scramble', name: 'flags scramble' },
-  { id: 'dogleg', name: 'dogleg' },
-]
+const boardgames: Record<Board, { id: string; name: string }[]> = {
+  casual: [
+    { id: 'choice', name: 'choice' },
+    { id: 'chance', name: 'chance' },
+    { id: 'flags-scramble', name: 'flags scramble' },
+    { id: 'population-scramble', name: 'population scramble' },
+    { id: 'border-scramble', name: 'border scramble' },
+    { id: 'capital-scramble', name: 'capital scramble' },
+    { id: 'world-scramble', name: 'world scramble' },
+  ],
+  ranked: [
+    { id: 'choice', name: 'choice' },
+    { id: 'chance', name: 'chance' },
+    { id: 'flags-scramble', name: 'flags scramble' },
+  ],
+  daily: [
+    { id: 'choice', name: 'choice' },
+    { id: 'chance', name: 'chance' },
+    { id: 'dogleg', name: 'dogleg' },
+  ],
+}
 
 function Card({ mode, open }: { mode: Mode; open: (mode: Mode) => void }) {
   return (
@@ -100,17 +115,23 @@ function Scopebox({ current, choose, close }: { current: Scope; choose: (scope: 
   )
 }
 
-function Boards({ scope, back }: { scope: Scope; back: () => void }) {
+function Boards({ scope, back, openscope }: { scope: Scope; back: () => void; openscope: () => void }) {
   const [board, setBoard] = useState<Board>('casual')
   const [game, setGame] = useState('choice')
   const [rows, setRows] = useState<Row[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const options = boardgames[board]
+
+  useEffect(() => {
+    if (!options.some(item => item.id === game)) setGame(options[0]!.id)
+  }, [board, game, options])
 
   useEffect(() => {
     let live = true
     setState('loading')
-    const params = new URLSearchParams({ board, game, scope: scope.id, limit: '15' })
-    if (board === 'ranked') params.set('season', 'current')
+    const params = new URLSearchParams({ board, game, limit: '15' })
+    if (board === 'casual') params.set('scope', scope.id)
+    if (board === 'ranked') { params.set('scope', scope.id); params.set('season', 'current') }
     if (board === 'daily') params.set('day', new Date().toISOString().slice(0, 10))
     fetch(`/api/leaderboard?${params}`)
       .then(async response => { const data = await response.json().catch(() => null) as { rows?: Row[] } | null; if (!live) return; if (!response.ok || !data?.rows) { setRows([]); setState('error') } else { setRows(data.rows); setState('ready') } })
@@ -124,9 +145,9 @@ function Boards({ scope, back }: { scope: Scope; back: () => void }) {
       <div className="card mr-detailcard">
         <div className="kicker">leaderboards</div>
         <h1>boards</h1>
-        <p>{scope.name} · top runs</p>
-        <div className="mr-tabs">{boards.map(tab => <button key={tab} className={`chip ${board === tab ? 'on' : ''}`} type="button" onClick={() => setBoard(tab)}>{tab}</button>)}</div>
-        <div className="mr-tabs">{games.map(item => <button key={item.id} className={`chip ${game === item.id ? 'on' : ''}`} type="button" onClick={() => setGame(item.id)}>{item.name}</button>)}</div>
+        <button className="btn ghost" type="button" onClick={openscope}>{scope.name} · {scope.count} countries</button>
+        <div className="mr-tabs">{boards.map(tab => <button key={tab} className={`btn ${board === tab ? '' : 'ghost'}`} type="button" onClick={() => setBoard(tab)}>{tab}</button>)}</div>
+        <div className="mr-tabs">{options.map(item => <button key={item.id} className={`btn ${game === item.id ? '' : 'ghost'}`} type="button" onClick={() => setGame(item.id)}>{item.name}</button>)}</div>
         {state === 'loading' && <p className="mr-empty">loading</p>}
         {state === 'error' && <p className="mr-empty">board unavailable</p>}
         {state === 'ready' && rows.length === 0 && <p className="mr-empty">no runs yet. be the first.</p>}
@@ -279,7 +300,7 @@ export default function Shell() {
 
         {phase === 'ready' && mode && <Gameplay mode={mode} scope={chosen.id} holes={holes} seed={seed} back={() => setPhase('home')} />}
 
-        {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} />}
+        {phase === 'boards' && <Boards scope={scope} back={() => setPhase('home')} openscope={() => setScopeopen(true)} />}
       </main>
 
       {phase !== 'ready' && <footer className="mr-foot"><span>meridian</span><span>195 countries · one connected world</span>{!user && <button className="btn quiet" type="button" onClick={() => setAuth('signup')}>create account</button>}</footer>}

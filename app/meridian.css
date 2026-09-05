@@ -235,8 +235,8 @@ button:disabled { cursor: default; }
 .gp-dial strong.wrong { color: var(--bad); }
 .gp-dial input { width: 100%; accent-color: var(--ink); }
 .gp-scale { width: 100%; display: flex; justify-content: space-between; color: var(--ink-2); }
+.gp-result { justify-content: center; }
 .gp-result h1 { margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
-.gp-withheld { padding: 10px 14px; background: var(--surface-2); border-radius: var(--r); color: var(--ink-2); }
 .gp-board { display: flex; flex-direction: column; gap: 4px; width: min(100%, 360px); padding: 14px; background: var(--surface-2); border-radius: var(--r); text-align: left; font-variant-numeric: tabular-nums; }
 .gp-board strong { margin-bottom: 4px; }
 .gp-board span { color: var(--ink-2); }

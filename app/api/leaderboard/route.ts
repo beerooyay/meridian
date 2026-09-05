@@ -46,17 +46,21 @@ export async function GET(request: Request) {
     const season = params.get("season")
     const area = params.get("scope")
     if (!season || !slug.test(season) || !area || !scope.test(area) || !clean(params, ["board", "game", "scope", "season", "limit"])) return fail(400, "invalid query")
+    const slug2 = season === "current"
+      ? (await client.from("seasons").select("slug").eq("active", true).limit(1).maybeSingle()).data?.slug
+      : season
+    if (!slug2) return fail(404, "no active season")
     const result = await client
       .from("rankedboard")
       .select("slug,game,scope,username,runs,best,average,fastest")
-      .eq("slug", season)
+      .eq("slug", slug2)
       .eq("game", game)
       .eq("scope", area)
       .order("best", { ascending: false })
       .order("fastest", { ascending: true })
       .limit(limit)
     if (result.error) return fail(500, "leaderboard unavailable")
-    return NextResponse.json({ board, game, scope: area, season, rows: result.data })
+    return NextResponse.json({ board, game, scope: area, season: slug2, rows: result.data })
   }
   if (board === "daily") {
     const day = params.get("day")

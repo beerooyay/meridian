@@ -7,7 +7,6 @@ import type { Mode } from './taxonomy'
 
 type Props = { mode: Mode; scope: string; holes: 9 | 18; seed: string; back: () => void }
 type Saved = { at: number; right: number; wrong: number; done: boolean }
-type Stats = { runs: number; right: number; total: number; average: number }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
 const flag = (value: string) => value.startsWith('/') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
@@ -78,8 +77,6 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
   const [done, setDone] = useState(initial?.done ?? false)
   const [picked, setPicked] = useState<string | number | null>(null)
   const [result, setResult] = useState<boolean | null>(null)
-  const [history, setHistory] = useState<Stats | null>(null)
-  const recorded = useRef(false)
   const item = questions[Math.min(at, questions.length - 1)]!
 
   useEffect(() => {
@@ -88,17 +85,6 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
   useEffect(() => {
     for (let i = at + 1; i < Math.min(at + 4, questions.length); i++) warm(questions[i]?.flag)
   }, [at, questions])
-  useEffect(() => {
-    if (!done || mode.group !== 'casual' || recorded.current) return
-    recorded.current = true
-    const key = `meridian:stats:${mode.id}:${scope.id}`
-    let old: Stats = { runs: 0, right: 0, total: 0, average: 0 }
-    try { old = { ...old, ...JSON.parse(localStorage.getItem(key) || '{}') as Stats } } catch {}
-    const next = { runs: old.runs + 1, right: old.right + right, total: old.total + right + wrong, average: 0 }
-    next.average = next.total ? next.right / next.total : 0
-    localStorage.setItem(key, JSON.stringify(next))
-    setHistory(next)
-  }, [done, mode.group, mode.id, right, scope.id, wrong])
 
   function answer(value: string | number) {
     if (result !== null || done) return
@@ -113,7 +99,7 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
     else { setAt(value => value + 1); setResult(null); setPicked(null) }
   }
 
-  if (done) return <Result right={right} wrong={wrong} back={back} stats={history} />
+  if (done) return <Result right={right} wrong={wrong} back={back} />
   return <section className="gp-shell">
     <Head back={back} label="end run" score={right} meter={<>{at + 1} / {questions.length}{survival ? ` · ${wrong}/3` : ''}</>} />
     <div className="gp-card">
@@ -126,9 +112,9 @@ function Quiz({ index, mode, scope, seed, back }: { index: Countries; mode: Mode
   </section>
 }
 
-function Result({ right, wrong, back, stats }: { right: number; wrong: number; back: () => void; stats: Stats | null }) {
+function Result({ right, wrong, back }: { right: number; wrong: number; back: () => void }) {
   const total = right + wrong
-  return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">run complete</div><h1>{right}<small> / {total}</small></h1><p>{total ? Math.round(right / total * 100) : 0}% accuracy · {wrong} missed</p>{stats && <div className="gp-withheld">{stats.runs} local runs · {stats.right} cumulative correct · {Math.round(stats.average * 100)}% average</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+  return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">run complete</div><h1>{right}<small> / {total}</small></h1><p>{total ? Math.round(right / total * 100) : 0}% accuracy · {wrong} missed</p><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
 }
 
 type Issued = { run: string; season: string; q: number; qcount: number; expires: string; question: PublicQuestion }
@@ -236,8 +222,8 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     setQ(feedback.next.q); setItem(feedback.next.question); setFeedback(null); setPicked(null)
   }
 
-  if (error && !issued) return <section className="gp-shell"><div className="gp-card"><div className="kicker">ranked unavailable</div><h2>{error === 'login required' ? 'log in to play ranked.' : error}</h2><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
-  if (!issued || !item) return <section className="gp-shell"><div className="gp-card"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
+  if (error && !issued) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">ranked unavailable</div><h2>{error === 'login required' ? 'log in to play ranked.' : error}</h2><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+  if (!issued || !item) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
   if (result) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">verified result</div><h1>{result.score}<small> points</small></h1><p>{result.correct} correct · {result.answered} answered · {(result.elapsed / 1000).toFixed(1)} seconds</p>{rows.length > 0 && <div className="gp-board"><strong>{issued.season} leaderboard</strong>{rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
   return <section className="gp-shell">
     <Head back={back} label="end run" score={points} meter={<Clock expires={issued.expires} expire={finish} />} />
@@ -259,7 +245,7 @@ function Dogleg({ index, scope, holes, seed, mode, back }: { index: Countries; s
   const saved = useMemo<Course>(() => { if (mode.group !== 'daily') return {}; try { const raw = JSON.parse(localStorage.getItem(key) || '{}') as Course; return { ...raw, holes: raw.holes === 18 ? 18 : raw.holes === 9 ? 9 : undefined, at: Math.max(0, Number(raw.at) || 0) } } catch { return {} } }, [key, mode.group])
   const length = saved.holes ?? holes
   const course = useMemo(() => { try { return dogleg(index, { holes: length, seed: `${seed}:${scope.id}:${length}`, scope: scope.countries }) } catch { return null } }, [index, length, scope, seed])
-  if (!course) return <section className="gp-shell"><div className="gp-card"><div className="kicker">dogleg</div><h2>{scope.label} is too small for a full course.</h2><p>pick a larger region and try again.</p><button className="btn" onClick={back}>back</button></div></section>
+  if (!course) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">dogleg</div><h2>{scope.label} is too small for a full course.</h2><p>pick a larger region and try again.</p><button className="btn" onClick={back}>back</button></div></section>
   return <Holes key={`${key}:${length}`} index={index} scope={scope} course={course} saved={saved} length={length} storage={mode.group === 'daily' ? key : null} back={back} />
 }
 

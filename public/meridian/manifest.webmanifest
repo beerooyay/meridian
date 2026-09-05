@@ -7,5 +7,5 @@
   "orientation": "portrait",
   "background_color": "#0e0f12",
   "theme_color": "#0e0f12",
-  "icons": [{ "src": "/meridian/branding/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [{ "src": "/apple-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
 }

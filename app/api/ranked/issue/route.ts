@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const seed = randomBytes(32).toString('hex')
   const questions = deck(found.index, { mode: body.game, seed, count: 120, scope: selected })
   const now = new Date()
-  const limit = new Date(now.valueOf() + 43_000)
+  const limit = new Date(now.valueOf() + 60_000)
   const season = await found.db.from('seasons').select('id,slug,ends').eq('active', true).lte('starts', now.toISOString()).gte('ends', limit.toISOString()).limit(1).maybeSingle()
   if (season.error) return fail(500, 'ranked season unavailable')
   if (!season.data) return fail(409, 'no active ranked season')

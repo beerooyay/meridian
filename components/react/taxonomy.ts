@@ -12,17 +12,17 @@ export type Mode = {
 }
 
 const daily = [
-  ['daily-choice', 'choice', 'ten flags. pick the right country from four options.', 'a shared set of ten flags with four answers each, same ten for everyone today. one attempt, scored on accuracy.', '10 questions'],
-  ['daily-world-choice', 'world choice', 'ten multiple-choice questions on capitals, borders, languages, and flags.', 'a shared deck mixing capitals, borders, languages, and flags, each with four answers. one attempt per day.', '10 questions'],
+  ['daily-choice', 'choice', 'forty-three flags. pick the right country from four options.', 'a shared set of forty-three flags with four answers each, same deck for everyone today. one attempt, scored on accuracy.', '43 questions'],
   ['daily-chance', 'chance', 'ten flags, no options. type the country name from memory.', 'today\'s ten flags in a shared order. type the country each flag belongs to. one attempt, scored on accuracy.', '1 attempt'],
   ['daily-dogleg', 'dogleg', 'travel between two countries by crossing land borders in the fewest hops. par is the true shortest path.', 'today\'s course runs the whole world. each hole gives you a start and a finish; move only through neighboring countries and try to match par. choose nine or eighteen holes.', 'golf scoring'],
+  ['daily-world-choice', 'world choice', 'ten multiple-choice questions on capitals, borders, languages, and flags.', 'a shared deck mixing capitals, borders, languages, and flags, each with four answers. one attempt per day.', '10 questions'],
   ['daily-world-scramble', 'world scramble', 'ten mixed puzzles: letter tiles, population dials, capitals, and borders in one deck.', 'a shared medley across every question type. unscramble names, estimate populations, and connect capitals in one daily run.', '10 questions'],
 ] as const
 
 const ranked = [
-  ['ranked-choice', 'choice', 'forty-three seconds of flags. pick the right country before time runs out.', 'answer as many flag prompts as you can before the clock expires. scoring is server-verified and ranks by season.', '43 seconds'],
-  ['ranked-chance', 'chance', 'forty-three seconds of mixed prompts with no options. type fast, type right.', 'a timed sequence of typed answers across flags, capitals, and countries. only finished runs count on the board.', '43 seconds'],
-  ['ranked-flags-scramble', 'flags scramble', 'see a flag, rebuild the country name from shuffled letters before time runs out.', 'each flag comes with its name in scrambled tiles. tap letters in order to spell it. forty-three seconds, ranked by score.', '43 seconds'],
+  ['ranked-choice', 'choice', 'sixty seconds of flags. pick the right country before time runs out.', 'answer as many flag prompts as you can before the clock expires. scoring is server-verified and ranks by season.', '60 seconds'],
+  ['ranked-chance', 'chance', 'sixty seconds of mixed prompts with no options. type fast, type right.', 'a timed sequence of typed answers across flags, capitals, and countries. only finished runs count on the board.', '60 seconds'],
+  ['ranked-flags-scramble', 'flags scramble', 'see a flag, rebuild the country name from shuffled letters before time runs out.', 'each flag comes with its name in scrambled tiles. tap letters in order to spell it. sixty seconds, ranked by score.', '60 seconds'],
 ] as const
 
 const casual = [

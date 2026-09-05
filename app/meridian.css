@@ -261,7 +261,7 @@ button:disabled { cursor: default; }
   }
   .mr-nav nav .btn { flex: 1; padding: 0; }
   .mr-user .btn:first-child { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; display: block; line-height: var(--h); }
-  .mr-foot span:nth-child(2) { display: none; }
+  .mr-foot { display: none; }
   .gp-options { grid-template-columns: 1fr; }
 }
 @media (max-width: 440px) {

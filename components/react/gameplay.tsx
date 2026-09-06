@@ -7,7 +7,8 @@ import { Back } from './icons'
 import type { Format, Mode } from './taxonomy'
 
 type Props = { mode: Mode; scope: string; holes: 9 | 18; format: Format; seed: string; back: () => void }
-type Saved = { at: number; right: number; wrong: number; done: boolean }
+type Entry = { ok: boolean; flag?: string; label: string }
+type Saved = { at: number; right: number; wrong: number; done: boolean; log?: Entry[] }
 
 const stamp = (mode: Mode, seed: string) => `meridian:daily:${seed}:${mode.id}`
 const flag = (value: string) => value.startsWith('/') || value.startsWith('data:') ? value : `/meridian/flags/${value.toLowerCase()}.svg`
@@ -72,9 +73,43 @@ function Head({ back, label, score, meter }: { back: () => void; label: string; 
 }
 
 type Stat = { value: ReactNode; label: string }
+type Miss = { flag?: string; label: string }
 
 function Stats({ items }: { items: Stat[] }) {
   return <div className="gp-stats">{items.map(item => <div key={item.label}><strong>{item.value}</strong><span>{item.label}</span></div>)}</div>
+}
+
+function Marks({ marks }: { marks: boolean[] }) {
+  if (!marks.length) return null
+  return <div className="gp-marks" aria-hidden="true">{marks.map((ok, at) => <span key={at} className={ok ? 'on' : ''} />)}</div>
+}
+
+function Review({ misses }: { misses: Miss[] }) {
+  if (!misses.length) return null
+  return <div className="gp-review">
+    <div className="kicker">worth another look</div>
+    <ul>{misses.map((miss, at) => <li key={`${miss.label}:${at}`}>{miss.flag ? <img src={flag(miss.flag)} alt="" width="34" height="26" loading="lazy" decoding="async" /> : <span className="gp-review-mark" />}<span>{miss.label}</span></li>)}</ul>
+  </div>
+}
+
+const bestkey = (id: string) => `meridian:best:${id}`
+function record(id: string, score: number, lower = false) {
+  try {
+    const raw = localStorage.getItem(bestkey(id))
+    const prev = raw === null ? null : Number(raw)
+    const beaten = prev !== null && Number.isFinite(prev) && (lower ? score < prev : score > prev)
+    if (prev === null || beaten) localStorage.setItem(bestkey(id), String(score))
+    return beaten
+  } catch { return false }
+}
+
+function shareScore(title: string, score: string, marks: boolean[]) {
+  const grid = marks.map((ok, at) => (ok ? '\u25a0' : '\u25a1') + ((at + 1) % 10 === 0 ? '\n' : '')).join('')
+  const text = `meridian ${title} \u2014 ${score}\n${grid}\nmeridianflags.com`
+  try {
+    if (typeof navigator !== 'undefined' && navigator.share) { void navigator.share({ text }).catch(() => {}); return }
+    void navigator.clipboard?.writeText(text).catch(() => {})
+  } catch {}
 }
 
 function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countries; mode: Mode; scope: Scope; format: Format; seed: string; back: () => void }) {
@@ -83,11 +118,12 @@ function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countrie
   const count = mode.group === 'daily' ? undefined : cycle ? scope.countries.length : timed ? 120 : 25
   const questions = useMemo(() => deck(index, { mode: mode.id, seed: `${seed}:${mode.id}:${scope.id}:${run}`, scope, count }), [count, index, mode.id, run, scope, seed])
   const key = stamp(mode, seed)
-  const initial = useMemo(() => { if (mode.group !== 'daily') return null; try { const raw = JSON.parse(localStorage.getItem(key) || '') as Partial<Saved>; return { at: Math.min(Math.max(0, Number(raw.at) || 0), Math.max(0, questions.length - 1)), right: Math.max(0, Number(raw.right) || 0), wrong: Math.max(0, Number(raw.wrong) || 0), done: Boolean(raw.done) } } catch { return null } }, [key, mode.group, questions.length])
+  const initial = useMemo(() => { if (mode.group !== 'daily') return null; try { const raw = JSON.parse(localStorage.getItem(key) || '') as Partial<Saved>; return { at: Math.min(Math.max(0, Number(raw.at) || 0), Math.max(0, questions.length - 1)), right: Math.max(0, Number(raw.right) || 0), wrong: Math.max(0, Number(raw.wrong) || 0), done: Boolean(raw.done), log: Array.isArray(raw.log) ? raw.log : [] } } catch { return null } }, [key, mode.group, questions.length])
   const [at, setAt] = useState(initial?.at ?? 0)
   const [right, setRight] = useState(initial?.right ?? 0)
   const [wrong, setWrong] = useState(initial?.wrong ?? 0)
   const [done, setDone] = useState(initial?.done ?? false)
+  const [log, setLog] = useState<Entry[]>(initial?.log ?? [])
   const [picked, setPicked] = useState<string | number | null>(null)
   const [result, setResult] = useState<boolean | null>(null)
   const started = useRef(Date.now())
@@ -96,8 +132,8 @@ function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countrie
   const item = questions[Math.min(at, questions.length - 1)]!
 
   useEffect(() => {
-    if (mode.group === 'daily') localStorage.setItem(key, JSON.stringify({ at, right, wrong, done, scope: scope.id }))
-  }, [at, right, wrong, done, key, mode.group, scope.id])
+    if (mode.group === 'daily') localStorage.setItem(key, JSON.stringify({ at, right, wrong, done, log, scope: scope.id }))
+  }, [at, right, wrong, done, log, key, mode.group, scope.id])
   useEffect(() => {
     for (let i = at + 1; i < Math.min(at + 4, questions.length); i++) warm(questions[i]?.flag)
   }, [at, questions])
@@ -107,6 +143,7 @@ function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countrie
     const good = validate(index, item, value)
     setPicked(value)
     setResult(good)
+    setLog(prev => [...prev, { ok: good, flag: item.flag, label: String(item.answer) }])
     if (good) setRight(value => value + 1); else setWrong(value => value + 1)
   }
   const last = (cycle && wrong >= 3) || at + 1 >= questions.length
@@ -115,7 +152,23 @@ function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countrie
     else { setAt(value => value + 1); setResult(null); setPicked(null) }
   }
 
-  if (done) return <Result right={right} wrong={wrong} elapsed={Date.now() - started.current} format={mode.group === 'daily' ? 'daily' : run} back={back} />
+  if (done) {
+    const total = right + wrong
+    const accuracy = total ? Math.round(right / total * 100) : 0
+    const elapsed = Date.now() - started.current
+    const kind: Format | 'daily' = mode.group === 'daily' ? 'daily' : run
+    const label = kind === 'best' ? 'best of 25' : kind === 'minute' ? 'one minute' : kind === 'cycle' ? 'the cycle' : 'daily complete'
+    const marks = log.map(entry => entry.ok)
+    const misses = log.filter(entry => !entry.ok).map(entry => ({ flag: entry.flag, label: entry.label }))
+    const beaten = record(`${mode.id}:${scope.id}:${run}`, right)
+    const stats: Stat[] = [
+      { value: `${accuracy}%`, label: 'accuracy' },
+      { value: right, label: 'correct' },
+      { value: total, label: 'questions' },
+      { value: kind === 'minute' ? `${Math.min(60, elapsed / 1000).toFixed(1)}s` : wrong, label: kind === 'minute' ? 'time' : 'missed' },
+    ]
+    return <Result sub={label} headline={right} tag={beaten ? 'new personal best' : undefined} marks={marks} stats={stats} misses={misses} share={mode.group === 'daily' ? () => shareScore(`${mode.name} daily`, String(right), marks) : undefined} back={back} />
+  }
   return <section className="gp-shell">
     <Head back={back} label="end run" score={right} meter={timed ? <Clock expires={expires} expire={finish} /> : <>{at + 1} / {questions.length}{cycle ? ` · ${wrong}/3` : ''}</>} />
     <div className="gp-card">
@@ -128,11 +181,32 @@ function Quiz({ index, mode, scope, format: run, seed, back }: { index: Countrie
   </section>
 }
 
-function Result({ right, wrong, elapsed, format: run, back }: { right: number; wrong: number; elapsed: number; format: Format | 'daily'; back: () => void }) {
-  const total = right + wrong
-  const accuracy = total ? Math.round(right / total * 100) : 0
-  const label = run === 'best' ? 'best of 25' : run === 'minute' ? 'one minute' : run === 'cycle' ? 'the cycle' : 'daily'
-  return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">run complete</div><h1>{right}</h1><p>{label}</p><Stats items={[{ value: `${accuracy}%`, label: 'accuracy' }, { value: right, label: 'correct' }, { value: total, label: 'questions' }, { value: run === 'minute' ? `${Math.min(60, elapsed / 1000).toFixed(1)}s` : wrong, label: run === 'minute' ? 'time' : 'missed' }]} /><button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+function Result({ sub, headline, tag, marks, stats, misses, board, share, back }: {
+  sub: string
+  headline: ReactNode
+  tag?: string
+  marks?: boolean[]
+  stats: Stat[]
+  misses?: Miss[]
+  board?: { title: string; rows: Row[] }
+  share?: () => void
+  back: () => void
+}) {
+  return <section className="gp-shell"><div className="gp-card gp-result">
+    <div className="gp-result-body">
+      <div className="kicker">{sub}</div>
+      <h1>{headline}</h1>
+      {tag ? <p className="gp-best">{tag}</p> : null}
+      {marks ? <Marks marks={marks} /> : null}
+      <Stats items={stats} />
+      {misses ? <Review misses={misses} /> : null}
+      {board && board.rows.length ? <div className="gp-board"><strong>{board.title}</strong>{board.rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div> : null}
+    </div>
+    <div className="gp-endbtns">
+      {share ? <button className="btn ghost" type="button" onClick={share}>share score</button> : null}
+      <button className="btn" type="button" onClick={back}>return to modes</button>
+    </div>
+  </div></section>
 }
 
 type Issued = { run: string; season: string; q: number; qcount: number; expires: string; question: PublicQuestion }
@@ -170,6 +244,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
   const [result, setResult] = useState<Final | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [points, setPoints] = useState(0)
+  const [log, setLog] = useState<Entry[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const finishing = useRef(false)
@@ -197,7 +272,7 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
 
   useEffect(() => {
     let live = true
-    setIssued(null); setItem(null); setQ(1); setPoints(0); setFeedback(null); setResult(null); setError(''); setBusy(false); setPicked(null)
+    setIssued(null); setItem(null); setQ(1); setPoints(0); setLog([]); setFeedback(null); setResult(null); setError(''); setBusy(false); setPicked(null)
     post('/api/ranked/issue', { game: mode.id, scope: scope.id })
       .then(async response => {
         const data = await response.json().catch(() => null) as (Issued & { error?: string }) | null
@@ -219,23 +294,29 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
     if (!issued || !item || feedback || busy || result) return
     setBusy(true)
     setPicked(value)
+    const shown = item
+    // one idempotent retry: the server dedupes by (run, q), so re-sending is safe
     const send = async (attempt = 0): Promise<Response> => {
       try { return await post('/api/ranked/answer', { run: issued.run, q, answer: value }) }
-      catch { if (attempt < 1) return send(attempt + 1); throw new Error('ranked request failed') }
+      catch { if (attempt < 1) return send(attempt + 1); throw new Error('offline') }
     }
     try {
       const response = await send()
       const data = await response.json().catch(() => null) as (Answered & { error?: string }) | null
       if (!alive.current) return
       if (!response.ok || !data) {
-        if (response.status === 409) { await finish(); return }
-        throw new Error(data?.error || 'answer could not be saved')
+        // any rejection here means the run is over or unrecoverable: settle it so
+        // the verified score and leaderboard still show, never a dead-end error
+        await finish()
+        return
       }
       setFeedback(data)
       setPoints(total => total + data.points)
+      setLog(prev => [...prev, { ok: Boolean(data.correct), flag: shown?.flag, label: String(data.reveal.answer) }])
       setError('')
-    } catch (value) {
-      if (alive.current) setError(value instanceof Error ? value.message : 'answer could not be saved')
+    } catch {
+      // both network attempts failed: settle the run rather than losing it
+      if (alive.current) await finish()
     } finally {
       if (alive.current) setBusy(false)
     }
@@ -250,7 +331,16 @@ function Ranked({ mode, scope, back }: { mode: Mode; scope: Scope; back: () => v
   if (!issued || !item) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">ranked</div><h2>issuing your server run</h2></div></section>
   if (result) {
     const accuracy = result.answered ? Math.round(result.correct / result.answered * 100) : 0
-    return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">verified result</div><h1>{result.score}</h1><p>ranked points</p><Stats items={[{ value: `${accuracy}%`, label: 'accuracy' }, { value: result.correct, label: 'correct' }, { value: result.answered, label: 'questions' }, { value: `${(result.elapsed / 1000).toFixed(1)}s`, label: 'time' }]} />{rows.length > 0 && <div className="gp-board"><strong>{issued.season} leaderboard</strong>{rows.map((row, at) => <span key={row.username}>{at + 1}. {row.username} · {row.best}</span>)}</div>}<button className="btn" type="button" onClick={back}>return to modes</button></div></section>
+    const marks = log.map(entry => entry.ok)
+    const misses = log.filter(entry => !entry.ok).map(entry => ({ flag: entry.flag, label: entry.label }))
+    const beaten = record(`${mode.id}:${scope.id}`, result.score)
+    const stats: Stat[] = [
+      { value: `${accuracy}%`, label: 'accuracy' },
+      { value: result.correct, label: 'correct' },
+      { value: result.answered, label: 'questions' },
+      { value: `${(result.elapsed / 1000).toFixed(1)}s`, label: 'time' },
+    ]
+    return <Result sub="verified result" headline={result.score} tag={beaten ? 'new personal best' : undefined} marks={marks} stats={stats} misses={misses} board={{ title: `${issued.season} leaderboard`, rows }} back={back} />
   }
   return <section className="gp-shell">
     <Head back={back} label="end run" score={points} meter={<Clock expires={issued.expires} expire={finish} />} />
@@ -273,10 +363,10 @@ function Dogleg({ index, scope, holes, seed, mode, back }: { index: Countries; s
   const length = saved.holes ?? holes
   const course = useMemo(() => { try { return dogleg(index, { holes: length, seed: `${seed}:${scope.id}:${length}`, scope: scope.countries }) } catch { return null } }, [index, length, scope, seed])
   if (!course) return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">dogleg</div><h2>{scope.label} is too small for a full course.</h2><p>pick a larger region and try again.</p><button className="btn" onClick={back}>back</button></div></section>
-  return <Holes key={`${key}:${length}`} index={index} scope={scope} course={course} saved={saved} length={length} storage={mode.group === 'daily' ? key : null} back={back} />
+  return <Holes key={`${key}:${length}`} index={index} scope={scope} course={course} saved={saved} length={length} mode={mode} storage={mode.group === 'daily' ? key : null} back={back} />
 }
 
-function Holes({ index, scope, course, saved, length, storage, back }: { index: Countries; scope: Scope; course: DoglegCourse; saved: Course; length: 9 | 18; storage: string | null; back: () => void }) {
+function Holes({ index, scope, course, saved, length, mode, storage, back }: { index: Countries; scope: Scope; course: DoglegCourse; saved: Course; length: 9 | 18; mode: Mode; storage: string | null; back: () => void }) {
   const [at, setAt] = useState(Math.min(saved.at ?? 0, course.holes.length))
   const safe = Math.min(at, course.holes.length)
   const hole = course.holes[Math.min(at, course.holes.length - 1)]!
@@ -311,21 +401,37 @@ function Holes({ index, scope, course, saved, length, storage, back }: { index: 
     const scored = scores.reduce((sum, value) => sum + value, 0)
     const actual = trails.reduce((sum, value) => sum + value, 0)
     const delta = scored - course.totalPar
-    return <section className="gp-shell"><div className="gp-card gp-result"><div className="kicker">course complete</div><h1>{delta > 0 ? '+' : ''}{delta}</h1><p>to par</p><Stats items={[{ value: course.totalPar, label: 'course par' }, { value: scored, label: 'strokes' }, { value: actual, label: 'hops' }, { value: `${Math.round(course.totalDistance).toLocaleString()} km`, label: 'distance' }]} /><button className="btn" onClick={back}>return to modes</button></div></section>
+    const marks = scores.map((value, i) => value <= course.holes[i]!.par)
+    const misses = scores
+      .map((value, i) => ({ value, i }))
+      .filter(entry => entry.value > course.holes[entry.i]!.par)
+      .map(entry => ({ flag: course.holes[entry.i]!.to, label: `${name(course.holes[entry.i]!.from)} → ${name(course.holes[entry.i]!.to)}` }))
+    const beaten = record(`${mode.id}:${scope.id}:${length}`, delta, true)
+    const stats: Stat[] = [
+      { value: course.totalPar, label: 'course par' },
+      { value: scored, label: 'strokes' },
+      { value: actual, label: 'hops' },
+      { value: `${Math.round(course.totalDistance).toLocaleString()} km`, label: 'distance' },
+    ]
+    return <Result sub="course complete" headline={<>{delta > 0 ? '+' : ''}{delta} <span className="gp-unit">to par</span></>} tag={beaten ? 'new personal best' : undefined} marks={marks} stats={stats} misses={misses} share={mode.group === 'daily' ? () => shareScore(`${mode.name} daily`, `${delta > 0 ? '+' : ''}${delta} to par`, marks) : undefined} back={back} />
   }
   const standing = scores.reduce((sum, value, i) => sum + value - course.holes[i]!.par, 0)
   return <section className="gp-shell">
     <Head back={back} label="end course" score={<>{standing > 0 ? '+' : ''}{standing}</>} meter={<>hole {at + 1} / {length}</>} />
     <div className="gp-card">
       <div className="gp-body">
-        <div className="kicker">par {hole.par}</div>
-        <h2>{name(hole.from)} → {name(hole.to)}</h2>
+        <div className="gp-holes" aria-hidden="true">{course.holes.map((_, i) => <span key={i} className={i < at ? 'done' : i === at ? 'on' : ''} />)}</div>
+        <div className="gp-legs">
+          <div className="gp-leg"><img className="gp-legflag" src={flag(hole.from)} alt="" width="120" height="90" decoding="async" /><strong>{name(hole.from)}</strong><span className="kicker">from</span></div>
+          <span className="gp-arrow" aria-hidden="true">→</span>
+          <div className="gp-leg"><img className="gp-legflag" src={flag(hole.to)} alt="" width="120" height="90" decoding="async" /><strong>{name(hole.to)}</strong><span className="kicker">to</span></div>
+        </div>
+        <div className="kicker gp-parline">par {hole.par} · <b>{status.hops}</b> hops · <b>{Math.round(status.distance).toLocaleString()}</b> km</div>
         <div className="gp-trail">{route.map((id, position) => <span key={`${id}:${position}`}>{name(id)}</span>)}</div>
-        <div className="gp-dogstats"><span><b>{status.hops}</b>hops</span><span><b>{Math.round(status.distance).toLocaleString()}</b>km</span><span><b>{mastered.size}</b>borders</span></div>
-        <p className="gp-note">{!complete ? `choose a country adjacent to ${name(current)}.` : ''}</p>
-        <div className="gp-options">{options.map(id => <button type="button" onClick={() => move(id)} disabled={complete} key={id}>{name(id)}</button>)}</div>
+        <p className="gp-note">{!complete ? <>from <b>{name(current)}</b> — where next?</> : ''}</p>
+        <div className="gp-options gp-neighbours">{options.map(id => <button type="button" className="gp-neighbour" onClick={() => move(id)} disabled={complete} key={id}><img src={flag(id)} alt="" width="40" height="30" decoding="async" loading="lazy" /><span>{name(id)}</span></button>)}</div>
         <p className={`gp-caption ${complete ? (gave ? 'wrong' : 'correct') : ''}`}>{complete ? (gave ? `conceded · scored as par +2 · shortest route: ${hole.parPath.map(name).join(' → ')}` : `${status.hops - hole.par > 0 ? '+' : ''}${status.hops - hole.par} on the hole`) : ''}</p>
-        {!complete && <button className="btn quiet" type="button" onClick={() => setGave(true)}>concede hole</button>}
+        {!complete && <button className="btn quiet" type="button" onClick={() => setGave(true)}>show the way</button>}
       </div>
       <div className="gp-toolbar">{complete && <Next label={at + 1 === length ? 'finish course' : 'next hole'} onClick={next} />}</div>
     </div>
@@ -337,10 +443,9 @@ export default function Gameplay(props: Props) {
   const [error, setError] = useState('')
   useEffect(() => { let live = true; load().then(value => live && setIndex(value)).catch(value => live && setError(value instanceof Error ? value.message : 'country atlas could not be loaded.')); return () => { live = false } }, [])
   useEffect(() => {
-    const body = document.body
-    const previous = body.style.overflow
-    body.style.overflow = 'hidden'
-    return () => { body.style.overflow = previous }
+    const root = document.documentElement
+    root.setAttribute('data-locked', '')
+    return () => root.removeAttribute('data-locked')
   }, [])
   const selected = useMemo(() => index ? (getscopes(index).find(item => item.id === props.scope) ?? getscope(index)) : null, [index, props.scope])
   if (error) return <section className="gp-shell"><div className="gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>

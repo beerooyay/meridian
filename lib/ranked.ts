@@ -76,5 +76,11 @@ export const message = (text?: string) => {
   if (text.includes('not found')) return 'ranked run not found'
   if (text.includes('sequence')) return 'question out of sequence'
   if (text.includes('still active')) return 'ranked run is still active'
+  // guardattempt trigger fires 'invalid question'; a duplicate insert means the
+  // answer already landed on a retry. both mean the run has moved past this
+  // question, so surface them as a sequence condition (mapped to 409) and let
+  // the client settle the run instead of showing a dead-end failure.
+  if (text.includes('invalid question')) return 'question out of sequence'
+  if (text.includes('duplicate') || text.includes('unique') || text.includes('conflict')) return 'question out of sequence'
   return 'ranked request failed'
 }

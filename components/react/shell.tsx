@@ -312,7 +312,13 @@ export default function Shell({ initial }: { initial: User | null }) {
   useEffect(() => {
     const root = document.documentElement
     const vv = window.visualViewport
-    const set = () => root.style.setProperty('--app-vh', `${(vv?.height ?? window.innerHeight)}px`)
+    const set = () => {
+      const height = vv?.height ?? window.innerHeight
+      root.style.setProperty('--app-vh', `${height}px`)
+      // the on-screen keyboard shrinks the visual viewport well below the layout
+      // viewport; flag it so game screens can reflow to keep inputs and flags visible
+      root.toggleAttribute('data-kb', !!vv && window.innerHeight - height > 120)
+    }
     set()
     vv?.addEventListener('resize', set)
     vv?.addEventListener('scroll', set)
@@ -321,6 +327,7 @@ export default function Shell({ initial }: { initial: User | null }) {
       vv?.removeEventListener('resize', set)
       vv?.removeEventListener('scroll', set)
       window.removeEventListener('orientationchange', set)
+      root.removeAttribute('data-kb')
     }
   }, [])
 

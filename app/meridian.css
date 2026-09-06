@@ -134,7 +134,7 @@ button:disabled { cursor: default; }
 .mr-view > * { animation: rise .26s var(--ease) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 
-.mr-nav { height: clamp(72px, 6vw, 96px); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--gap); border-bottom: 1px solid var(--line); position: relative; z-index: 3; }
+.mr-nav { height: clamp(72px, 6vw, 96px); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--gap); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--paper); z-index: 3; }
 .mr-logo { width: clamp(150px, 8vw + 100px, 210px); padding: 0; border: 0; background: none; line-height: 0; justify-self: start; }
 .mr-logo img { width: 100%; height: auto; display: block; }
 .mr-nav nav { display: flex; gap: 4px; }

@@ -443,10 +443,9 @@ export default function Gameplay(props: Props) {
   const [error, setError] = useState('')
   useEffect(() => { let live = true; load().then(value => live && setIndex(value)).catch(value => live && setError(value instanceof Error ? value.message : 'country atlas could not be loaded.')); return () => { live = false } }, [])
   useEffect(() => {
-    const body = document.body
-    const previous = body.style.overflow
-    body.style.overflow = 'hidden'
-    return () => { body.style.overflow = previous }
+    const root = document.documentElement
+    root.setAttribute('data-locked', '')
+    return () => root.removeAttribute('data-locked')
   }, [])
   const selected = useMemo(() => index ? (getscopes(index).find(item => item.id === props.scope) ?? getscope(index)) : null, [index, props.scope])
   if (error) return <section className="gp-shell"><div className="gp-card"><h2>{error}</h2><button className="btn" onClick={props.back}>back</button></div></section>

@@ -257,11 +257,11 @@ img.swap-dark { display: none; }
 .gp-score { font-size: var(--t2); font-weight: 700; color: var(--ink); letter-spacing: -.03em; text-align: center; }
 .gp-meter { justify-self: end; text-align: right; }
 .gp-card { position: relative; width: min(100%, 820px); flex: 1; min-height: 0; margin: 0 auto; padding: clamp(16px, 3vw, 40px); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
-.gp-body { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 14px; overflow-y: auto; scrollbar-width: none; }
-.gp-body::-webkit-scrollbar { display: none; }
+.gp-body { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; overflow: hidden; }
 .gp-card h2 { max-width: 600px; min-height: calc(var(--t2) * 2.2); }
 .gp-reveal { min-height: calc(var(--t2) * 1.1); font-size: var(--t2); font-weight: 700; font-style: italic; color: var(--ink); letter-spacing: -.03em; }
-.gp-flag { height: min(280px, calc(var(--app-vh, 100dvh) * .34)); width: auto; max-width: min(560px, 92%); object-fit: contain; border-radius: 8px; transition: height .12s var(--ease); }
+.gp-reveal:empty, .gp-caption:empty { min-height: 0; }
+.gp-flag { flex: 0 1 auto; min-height: 0; width: auto; height: auto; max-width: min(520px, 90%); max-height: min(300px, 40vh); aspect-ratio: 4 / 3; object-fit: contain; border-radius: 8px; }
 .gp-note { min-height: calc(var(--t3) * 1.45); max-width: 520px; }
 .gp-caption { min-height: calc(var(--t3) * 1.45); color: var(--ink-2); max-width: 520px; }
 .gp-options { width: min(100%, 580px); display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-top: 6px; }
@@ -336,10 +336,6 @@ img.swap-dark { display: none; }
 .gp-options.gp-neighbours button { justify-content: flex-start; gap: 10px; padding: 10px 14px; text-align: left; font-weight: 700; }
 .gp-options.gp-neighbours button img { width: 28px; height: 21px; object-fit: cover; border-radius: 3px; flex: none; border: 1px solid var(--line); }
 .gp-options.gp-neighbours button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-html[data-kb] .gp-body { justify-content: flex-start; }
-html[data-kb] .gp-flag { height: min(150px, calc(var(--app-vh, 100dvh) * .24)); }
-html[data-kb] .gp-card h2 { min-height: 0; }
-html[data-kb] .gp-reveal { min-height: 0; }
 
 @media (max-width: 820px) {
   .mr-grid { grid-template-columns: 1fr 1fr; }
@@ -358,7 +354,7 @@ html[data-kb] .gp-reveal { min-height: 0; }
   }
   .mr-nav nav .btn { flex: 1; padding: 0; }
   .mr-foot { display: none; }
-  .gp-flag { height: min(200px, calc(var(--app-vh, 100dvh) * .3)); }
+  .gp-flag { max-height: min(240px, 34vh); }
   .gp-card { gap: 10px; }
   .gp-body { gap: 10px; }
 }
